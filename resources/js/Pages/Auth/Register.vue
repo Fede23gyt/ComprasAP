@@ -1,10 +1,6 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
+import DarkToggle from '@/Components/DarkToggle.vue';
 
 const form = useForm({
     name: '',
@@ -12,102 +8,112 @@ const form = useForm({
     password: '',
     password_confirmation: '',
 });
-
-const submit = () => {
-    form.post(route('register'), {
-        onFinish: () => form.reset('password', 'password_confirmation'),
-    });
-};
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Register" />
+    <div
+        :class="[
+      'min-h-screen flex items-center justify-center bg-cover bg-center',
+      'bg-compras-light dark:bg-compras-dark'
+    ]"
+    >
+        <!-- overlay -->
+        <div class="absolute inset-0 bg-black/60"></div>
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="name" value="Name" />
-
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1 block w-full"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
-
-                <InputError class="mt-2" :message="form.errors.name" />
+        <!-- card -->
+        <div
+            class="relative z-10 w-full max-sm md:max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8"
+        >
+            <!-- toggle dark -->
+            <div class="absolute top-4 right-4">
+                <DarkToggle />
             </div>
 
-            <div class="mt-4">
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password_confirmation"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
+            <!-- logo -->
+            <div class="flex justify-center mb-6">
+                <img
+                    src="/images/logo.png"
+                    alt="Logo"
+                    class="h-16 object-contain"
                 />
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
-                <Link
-                    :href="route('login')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            <!-- título -->
+            <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-white mb-2">
+                Crear Cuenta
+            </h1>
+            <p class="text-center text-gray-500 dark:text-gray-400 mb-8">
+                Regístrate para continuar
+            </p>
+
+            <!-- formulario -->
+            <form @submit.prevent="form.post('/register')" class="space-y-5">
+                <!-- nombre -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Nombre completo
+                    </label>
+                    <input
+                        v-model="form.name"
+                        type="text"
+                        required
+                        class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:ring-secondary focus:border-secondary"
+                    />
+                </div>
+
+                <!-- email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Email address
+                    </label>
+                    <input
+                        v-model="form.email"
+                        type="email"
+                        required
+                        class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:ring-secondary focus:border-secondary"
+                    />
+                </div>
+
+                <!-- contraseña -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Contraseña
+                    </label>
+                    <input
+                        v-model="form.password"
+                        type="password"
+                        required
+                        class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:ring-secondary focus:border-secondary"
+                    />
+                </div>
+
+                <!-- confirmar -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Confirmar contraseña
+                    </label>
+                    <input
+                        v-model="form.password_confirmation"
+                        type="password"
+                        required
+                        class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:ring-secondary focus:border-secondary"
+                    />
+                </div>
+
+                <!-- botón -->
+                <button
+                    type="submit"
+                    class="w-full bg-accent hover:bg-red-600 text-white font-semibold py-3 rounded-lg transition"
                 >
-                    Already registered?
-                </Link>
+                    Registrarse
+                </button>
+            </form>
 
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Register
-                </PrimaryButton>
-            </div>
-        </form>
-    </GuestLayout>
+            <!-- link login -->
+            <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+                ¿Ya tienes cuenta?
+                <a href="/login" class="text-secondary hover:underline">Inicia sesión</a>
+            </p>
+        </div>
+    </div>
 </template>

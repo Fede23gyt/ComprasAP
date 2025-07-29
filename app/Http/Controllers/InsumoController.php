@@ -2,42 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreInsumoRequest;
+use App\Http\Requests\StoreInsumoRequest; // Asegúrate de que este Request exista y sea correcto
 use App\Models\Insumo;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class InsumoController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra la lista de insumos en una estructura de árbol.
      */
     public function index(): Response
     {
-        // Carga los insumos de nivel superior con sus hijos y pagina los resultados
-        $insumos = Insumo::whereNull('parent_id')
-            ->with('children') // Eager load para evitar problemas N+1
-            ->paginate(10);
+        // Cargamos los insumos como un arbol para la tabla
+        // y también una lista plana para el dropdown de "padres" en el modal.
+        $insumos = Insumo::tree()->get()->toTree();
+        $padres = Insumo::orderBy('descripcion')->get(['id', 'descripcion']);
 
         return Inertia::render('Insumos/Index', [
             'insumos' => $insumos,
+            'padres'  => $padres,
         ]);
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): Response
-    {
-        // Pasamos todos los insumos para poder seleccionarlos como 'padre' en un dropdown
-        return Inertia::render('Insumos/Create', [
-            'insumosList' => Insumo::all(['id', 'descripcion']),
-        ]);
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * Guarda un nuevo insumo en la base de datos.
      */
     public function store(StoreInsumoRequest $request)
     {
@@ -46,18 +35,7 @@ class InsumoController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Insumo $insumo): Response
-    {
-        return Inertia::render('Insumos/Edit', [
-            'insumo' => $insumo,
-            'insumosList' => Insumo::where('id', '!=', $insumo->id)->get(['id', 'descripcion']), // Evitar que un insumo sea su propio padre
-        ]);
-    }
-
-    /**
-     * Update the specified resource in storage.
+     * Actualiza un insumo existente.
      */
     public function update(StoreInsumoRequest $request, Insumo $insumo)
     {
@@ -66,7 +44,7 @@ class InsumoController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina un insumo.
      */
     public function destroy(Insumo $insumo)
     {

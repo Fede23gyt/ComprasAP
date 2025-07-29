@@ -6,15 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('oficinas', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->foreignId('parent_id')->nullable()->constrained('oficinas')->onDelete('cascade');
+            $table->string('codigo_oficina')->unique();   // Código único
+            $table->string('nombre');
+            $table->string('abreviacion', 20);
+            $table->enum('estado', ['Habilitada', 'No habilitada'])->default('Habilitada');
+            $table->foreignId('parent_id')
+                ->nullable()
+                ->constrained('oficinas')
+                ->cascadeOnDelete();   // Jerarquía
             $table->timestamps();
         });
     }

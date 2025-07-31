@@ -56,6 +56,18 @@ const confirmDelete = (insumo) => {
         });
     }
 };
+
+const confirmToggle = (item) => {
+  if (
+    confirm(
+      `¿Estás seguro de ${
+        item.registrable ? 'inhabilitar' : 'habilitar'
+      } el insumo “${item.descripcion}”?`
+    )
+  ) {
+    useForm({}).patch(`/insumos/${item.id}/toggle`);
+  }
+};
 </script>
 
 <template>
@@ -94,27 +106,47 @@ const confirmDelete = (insumo) => {
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-gray-700/50 dark:bg-gray-700/50">
                     <tr class="h-4 text-xs">
-                        <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Descripción</th>
-                        <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Código</th>
-                        <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Presentación</th>
-                        <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Acciones</th>
+                      <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Código</th>
+                      <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Descripción</th>
+                      <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Presentación</th>
+                      <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Clasificacion</th>
+                      <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Estado</th>
+                      <th class="px-4 py-1 text-left font-medium text-black dark:text-gray-300">Acciones</th>
                     </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                    <tr
+                      <tr
                         v-for="node in filteredTree"
                         :key="node.id"
                         class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition h-4 text-xs"
-                    >
-                        <td class="px-4 py-1">
+                      >
+                      <td class="px-4 py-1 font-mono">{{ node.codigo }}</td>
+                      <td class="px-4 py-1">
                                 <span :style="{ marginLeft: node.level * 20 + 'px' }">
                                     <span v-if="node.level > 0" class="mr-2 text-gray-400">└─</span>
                                     {{ node.descripcion }}
                                 </span>
+                      </td>
+
+                      <td class="px-4 py-1">{{ node.presentacion }}</td>
+                      <td class="px-4 py-1">{{ node.clasificacion }}</td>
+                        <td class="px-4 py-1">
+                          <label class="inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              :checked="item.registrable ?? false"
+                              class="sr-only peer"
+                              @change="confirmToggle(item)"
+                            />
+                            <div
+                              :class="[
+        'relative w-10 h-5 rounded-full peer after:content-[\'\'] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:border after:border-gray-300 after:rounded-full after:transition-all peer-checked:after:translate-x-full',
+        item.registrable ? 'bg-green-500' : 'bg-red-500'
+      ]"
+                            ></div>
+                          </label>
                         </td>
-                        <td class="px-4 py-1 font-mono">{{ node.codigo }}</td>
-                        <td class="px-4 py-1">{{ node.presentacion }}</td>
-                        <td class="px-4 py-1 flex items-center space-x-3">
+                      <td class="px-4 py-1 flex items-center space-x-3">
                             <button @click="openModal(node)" class="text-orange-500 hover:text-orange-400" title="Editar">
                                 ✏️
                             </button>

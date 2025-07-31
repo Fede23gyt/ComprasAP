@@ -95,6 +95,8 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'collation' => 'utf8_unicode_ci',
+            /*'options'   => [\PDO::PGSQL_ATTR_CLIENT_ENCODING => 'UTF8'],*/
         ],
 
         'sqlsrv' => [

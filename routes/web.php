@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\OficinaController;
 use App\Http\Controllers\InsumoController; // <-- Importante: Añadir el controlador de Insumos
+use App\Http\Controllers\TipoCompraController;
+use App\Http\Controllers\TipoInsumoController;
+use App\Http\Controllers\TipoNotaController;
+use App\Http\Controllers\MemoController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -43,6 +47,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/insumos', [InsumoController::class, 'store'])->name('insumos.store');
     Route::patch('/insumos/{insumo}', [InsumoController::class, 'update'])->name('insumos.update');
     Route::delete('/insumos/{insumo}', [InsumoController::class, 'destroy'])->name('insumos.destroy');
+    Route::patch('/insumos/{insumo}/toggle', [InsumoController::class, 'toggle']);
+
+    /* NOMENCLADORES */
+    Route::resource('tipo_compra', TipoCompraController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('memos', MemoController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('tipo_nota', TipoNotaController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('tipo_insumo', TipoInsumoController::class)->only(['index', 'store', 'update', 'destroy']);
 
 });
 

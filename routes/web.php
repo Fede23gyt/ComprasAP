@@ -47,7 +47,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/insumos', [InsumoController::class, 'store'])->name('insumos.store');
     Route::patch('/insumos/{insumo}', [InsumoController::class, 'update'])->name('insumos.update');
     Route::delete('/insumos/{insumo}', [InsumoController::class, 'destroy'])->name('insumos.destroy');
-    Route::patch('/insumos/{insumo}/toggle', [InsumoController::class, 'toggle']);
+    Route::patch('/insumos/{insumo}/toggle-registrable', [InsumoController::class, 'toggleRegistrable']);
 
     /* NOMENCLADORES */
     Route::resource('tipo_compra', TipoCompraController::class)->only(['index', 'store', 'update', 'destroy']);

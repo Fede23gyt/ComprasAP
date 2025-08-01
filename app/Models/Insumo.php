@@ -66,4 +66,9 @@ class Insumo extends Model
     {
         return $this->hasMany(Insumo::class, 'parent_id');
     }
+
+  public function clasifEconomica()
+  {
+    return $this->belongsTo(ClasifEconomica::class, 'clasificacion', 'codigo');
+  }
 }

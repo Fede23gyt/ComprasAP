@@ -31,7 +31,7 @@ class InsumoController extends Controller
 
       $clasificaciones = ClasifEconomica::orderBy('codigo')->get(['codigo', 'descripcion']);
 
-      return inertia('Insumos/Index', compact('insumos', '$clasificaciones'));
+      return inertia('Insumos/Index', compact('insumos', 'clasificaciones'));
     }
 
     /**

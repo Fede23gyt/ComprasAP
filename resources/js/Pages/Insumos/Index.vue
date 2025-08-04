@@ -1,7 +1,7 @@
 <!-- resources/js/Pages/Insumos/Index.vue -->
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import InsumoFormModal from '@/Components/InsumoFormModal.vue';
+import InsumoFormModal from '@/Components/InsumoViewModal.vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
@@ -41,6 +41,8 @@ const confirmToggle = (item, field) => {
     <section class="bg-gray-100 dark:bg-gray-900 pt-4 pb-6">
       <div class="max-w-7xl mx-auto px-4"><h1 class="text-3xl font-bold">Insumos</h1></div>
     </section>
+
+    <InsumoViewModal v-if="showModal" :item="modalItem" @close="showModal = false" />
 
     <main class="max-w-7xl mx-auto px-4 py-8">
       <!-- Filtro + botón -->

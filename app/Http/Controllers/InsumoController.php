@@ -29,9 +29,9 @@ class InsumoController extends Controller
 
       $insumos = $query->orderBy('descripcion')->paginate(40)->withQueryString();
 
-      $padres = Insumo::where('registrable', true)->orderBy('descripcion')->get(['id', 'descripcion']);
+      $clasificaciones = ClasifEconomica::orderBy('codigo')->get(['codigo', 'descripcion']);
 
-      return inertia('Insumos/Index', compact('insumos', 'padres'));
+      return inertia('Insumos/Index', compact('insumos', '$clasificaciones'));
     }
 
     /**

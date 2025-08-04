@@ -20,13 +20,14 @@ const filteredPage = computed(() =>
   )
 );
 
-const showModal = ref(false);
-const modalProps = ref({ insumo: null, padres: [] });
 
-const openModal = (edit = false, node = null) => {
-  modalProps.value = { insumo: node, padres: props.padres };
+const showModal = ref(false);
+const modalItem = ref(null);
+const openModal = (item) => {
+  modalItem.value = item;
   showModal.value = true;
 };
+
 const closeModal = () => (showModal.value = false);
 
 const confirmToggle = (item, field) => {
@@ -73,8 +74,18 @@ const confirmToggle = (item, field) => {
             :key="item.id"
             class="h-10 text-xs hover:bg-gray-50 dark:hover:bg-gray-700/30 transition"
           >
-            <td class="px-4 py-1 font-mono">{{ item.codigo }}</td>
-            <td class="px-4 py-1">{{ item.descripcion }}</td>
+            <td class="px-4 py-1 font-mono"><button
+              @click="openModal(item)"
+              class="text-blue-600 hover:underline cursor-pointer"
+            >
+              {{ item.codigo }}
+            </button></td>
+            <td class="px-4 py-1"><button
+              @click="openModal(item)"
+              class="text-blue-600 hover:underline cursor-pointer"
+            >
+              {{ item.descripcion }}
+            </button></td>
             <td class="px-4 py-1">{{ item.clasificacion }}</td>
             <td class="px-4 py-1">{{ item.clasif_economica?.descripcion ?? '-' }}</td>
             <td class="px-4 py-1">

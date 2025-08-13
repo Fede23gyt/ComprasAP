@@ -35,12 +35,23 @@ Route::middleware('auth')->group(function () {
   Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
   // Oficinas
-  Route::get('/oficinas', [OficinaController::class, 'index'])->name('oficinas.index');
-  Route::get('/oficinas/create', [OficinaController::class, 'create'])->name('oficinas.create');
-  Route::post('/oficinas', [OficinaController::class, 'store'])->name('oficinas.store');
-  Route::get('/oficinas/{oficina}/edit', [OficinaController::class, 'edit'])->name('oficinas.edit');
-  Route::patch('/oficinas/{oficina}', [OficinaController::class, 'update'])->name('oficinas.update');
-  Route::patch('/oficinas/{oficina}/toggle', [OficinaController::class, 'toggle'])->name('oficinas.toggle');
+  // Rutas principales del CRUD (sin destroy)
+  Route::resource('oficinas', OficinaController::class)->except(['destroy']);
+
+  // Ruta para toggle del estado
+  Route::patch('oficinas/{oficina}/toggle', [OficinaController::class, 'toggle'])
+    ->name('oficinas.toggle');
+
+  // Rutas API adicionales
+  Route::prefix('api/oficinas')->group(function () {
+    // Obtener oficinas para selects (con búsqueda y filtros)
+    Route::get('/', [OficinaController::class, 'getOficinas'])
+      ->name('api.oficinas.index');
+
+    // Obtener jerarquía completa de una oficina
+    Route::get('{oficina}/hierarchy', [OficinaController::class, 'getHierarchy'])
+      ->name('api.oficinas.hierarchy');
+   });
 
   // Insumos
   Route::get('/insumos', [InsumoController::class, 'index'])->name('insumos.index');

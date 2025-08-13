@@ -2,6 +2,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
+import axios from 'axios'; // Agregamos axios para peticiones AJAX
 
 const props = defineProps({
   item: {
@@ -40,43 +42,41 @@ const submit = () => {
   console.log('Enviando datos:', form.data());
 
   if (props.mode === 'create') {
-    // Para creación, usamos el método submit en lugar de post
-    form.submit('post', '/tipos-nota', {
-      preserveState: false,
-      onSuccess: () => {
-        // No es necesario hacer nada aquí, la página se recargará
-        console.log('Formulario enviado correctamente');
-      },
-      onError: (errors) => {
-        console.error('Errores en la creación:', errors);
+    // Para creación, usamos axios directamente
+    axios.post('/tipos-nota', form.data())
+      .then(response => {
+        console.log('Respuesta exitosa:', response.data);
+        emit('saved', 'Tipo de nota creado correctamente');
+        // El evento saved se encargará de cerrar el modal y recargar la página
+      })
+      .catch(error => {
+        console.error('Errores en la creación:', error.response?.data);
         // Mostrar un mensaje de error
         Swal.fire({
           title: 'Error',
-          text: 'No se pudo crear el tipo de nota. Revisa los errores e inténtalo nuevamente.',
+          text: error.response?.data?.message || 'No se pudo crear el tipo de nota. Revisa los errores e inténtalo nuevamente.',
           icon: 'error',
           confirmButtonText: 'Entendido'
         });
-      }
-    });
+      });
   } else if (props.mode === 'edit') {
-    // Para edición, usamos el método submit en lugar de patch
-    form.submit('patch', `/tipos-nota/${props.item.id}`, {
-      preserveState: false,
-      onSuccess: () => {
-        // No es necesario hacer nada aquí, la página se recargará
-        console.log('Formulario enviado correctamente');
-      },
-      onError: (errors) => {
-        console.error('Errores en la actualización:', errors);
+    // Para edición, usamos axios directamente
+    axios.patch(`/tipos-nota/${props.item.id}`, form.data())
+      .then(response => {
+        console.log('Respuesta exitosa:', response.data);
+        emit('saved', 'Tipo de nota actualizado correctamente');
+        // El evento saved se encargará de cerrar el modal y recargar la página
+      })
+      .catch(error => {
+        console.error('Errores en la actualización:', error.response?.data);
         // Mostrar un mensaje de error
         Swal.fire({
           title: 'Error',
-          text: 'No se pudo actualizar el tipo de nota. Revisa los errores e inténtalo nuevamente.',
+          text: error.response?.data?.message || 'No se pudo actualizar el tipo de nota. Revisa los errores e inténtalo nuevamente.',
           icon: 'error',
           confirmButtonText: 'Entendido'
         });
-      }
-    });
+      });
   }
 };
 </script>

@@ -12,12 +12,22 @@ class TipoNotaController extends Controller
   /**
    * Display a listing of the resource.
    */
-  public function index()
+  public function index(Request $request)
   {
-    $tiposNota = TipoNota::orderBy('descripcion')->get();
+    $query = TipoNota::query()->orderBy('descripcion');
+
+    // Filtro por búsqueda si existe
+    if ($request->has('search') && !empty($request->search)) {
+      $search = $request->search;
+      $query->where('descripcion', 'ILIKE', "%{$search}%");
+    }
+
+    // Paginación de 15 elementos por página
+    $tiposNota = $query->paginate(15)->withQueryString();
 
     return Inertia::render('TipoNota/Index', [
-      'items' => $tiposNota
+      'items' => $tiposNota,
+      'filters' => $request->only(['search']),
     ]);
   }
 
@@ -43,18 +53,26 @@ class TipoNotaController extends Controller
       ],
       'estado' => [
         'required',
-        'in:Habilitado,No Habilitado'
+        Rule::in(['Habilitado', 'No habilitado'])
       ]
     ], [
       'descripcion.required' => 'La descripción es obligatoria.',
       'descripcion.max' => 'La descripción no puede exceder los 255 caracteres.',
       'descripcion.unique' => 'Ya existe un tipo de nota con esta descripción.',
       'estado.required' => 'El estado es obligatorio.',
-      'estado.in' => 'El estado debe ser Habilitado o No Habilitado.'
+      'estado.in' => 'El estado debe ser Habilitado o No habilitado.'
     ]);
 
     try {
-      TipoNota::create($validated);
+      $tipoNota = TipoNota::create($validated);
+
+      if ($request->wantsJson()) {
+        return response()->json([
+          'success' => true,
+          'message' => 'Tipo de nota creado correctamente.',
+          'tipoNota' => $tipoNota
+        ]);
+      }
 
       return redirect()
         ->route('tipos-nota.index')
@@ -62,6 +80,13 @@ class TipoNotaController extends Controller
         ->with('type', 'success');
 
     } catch (\Exception $e) {
+      if ($request->wantsJson()) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Error al crear el tipo de nota: ' . $e->getMessage()
+        ], 500);
+      }
+
       return redirect()
         ->back()
         ->withInput()
@@ -104,18 +129,26 @@ class TipoNotaController extends Controller
       ],
       'estado' => [
         'required',
-        'in:Habilitado,No Habilitado'
+        Rule::in(['Habilitado', 'No habilitado'])
       ]
     ], [
       'descripcion.required' => 'La descripción es obligatoria.',
       'descripcion.max' => 'La descripción no puede exceder los 255 caracteres.',
       'descripcion.unique' => 'Ya existe un tipo de nota con esta descripción.',
       'estado.required' => 'El estado es obligatorio.',
-      'estado.in' => 'El estado debe ser Habilitado o No Habilitado.'
+      'estado.in' => 'El estado debe ser Habilitado o No habilitado.'
     ]);
 
     try {
       $tipoNota->update($validated);
+
+      if ($request->wantsJson()) {
+        return response()->json([
+          'success' => true,
+          'message' => 'Tipo de nota actualizado correctamente.',
+          'tipoNota' => $tipoNota->fresh()
+        ]);
+      }
 
       return redirect()
         ->route('tipos-nota.index')
@@ -123,6 +156,13 @@ class TipoNotaController extends Controller
         ->with('type', 'success');
 
     } catch (\Exception $e) {
+      if ($request->wantsJson()) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Error al actualizar el tipo de nota: ' . $e->getMessage()
+        ], 500);
+      }
+
       return redirect()
         ->back()
         ->withInput()
@@ -137,16 +177,6 @@ class TipoNotaController extends Controller
   public function destroy(TipoNota $tipoNota)
   {
     try {
-      // Verificar si el tipo de nota está siendo usado
-      /*
-      if ($tipoNota->notasPedido()->exists()) {
-          return redirect()
-              ->back()
-              ->with('message', 'No se puede eliminar este tipo de nota porque está siendo utilizado en notas de pedido existentes.')
-              ->with('type', 'error');
-      }
-      */
-
       $descripcion = $tipoNota->descripcion;
       $tipoNota->delete();
 
@@ -171,11 +201,11 @@ class TipoNotaController extends Controller
     $validated = $request->validate([
       'estado' => [
         'required',
-        'in:Habilitado,No habilitado'
+        Rule::in(['Habilitado', 'No habilitado'])
       ]
     ], [
       'estado.required' => 'El estado es obligatorio.',
-      'estado.in' => 'El estado debe ser Habilitado o No Habilitado.'
+      'estado.in' => 'El estado debe ser Habilitado o No habilitado.'
     ]);
 
     try {
@@ -186,18 +216,32 @@ class TipoNotaController extends Controller
         ? "Tipo de nota '{$tipoNota->descripcion}' habilitado correctamente."
         : "Tipo de nota '{$tipoNota->descripcion}' deshabilitado correctamente.";
 
-      // Devolver JSON en lugar de redirect
-      return response()->json([
-        'success' => true,
-        'message' => $mensaje,
-        'tipoNota' => $tipoNota->fresh()
-      ]);
+      // Detectar si la solicitud espera JSON (AJAX)
+      if ($request->wantsJson() || $request->ajax()) {
+        return response()->json([
+          'success' => true,
+          'message' => $mensaje,
+          'tipoNota' => $tipoNota->fresh()
+        ]);
+      }
+
+      return redirect()
+        ->back()
+        ->with('message', $mensaje)
+        ->with('type', 'success');
 
     } catch (\Exception $e) {
-      return response()->json([
-        'success' => false,
-        'message' => 'Error al cambiar el estado: ' . $e->getMessage()
-      ], 500);
+      if ($request->wantsJson() || $request->ajax()) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Error al cambiar el estado: ' . $e->getMessage()
+        ], 500);
+      }
+
+      return redirect()
+        ->back()
+        ->with('message', 'Error al cambiar el estado: ' . $e->getMessage())
+        ->with('type', 'error');
     }
   }
 
@@ -214,85 +258,45 @@ class TipoNotaController extends Controller
   }
 
   /**
-   * Bulk update estados
+   * Export tipos de nota to PDF or Excel
    */
-  public function bulkToggleEstado(Request $request)
+  public function export(Request $request, $format)
   {
-    $validated = $request->validate([
-      'ids' => 'required|array',
-      'ids.*' => 'exists:tipo_nota,id',
-      'estado' => 'required|in:Habilitado,No habilitado'
-    ]);
+    // Validar formato
+    if (!in_array($format, ['pdf', 'excel'])) {
+      abort(400, 'Formato no válido');
+    }
 
-    try {
-      $count = TipoNota::whereIn('id', $validated['ids'])
-        ->update(['estado' => $validated['estado']]);
+    // Construir la consulta
+    $query = TipoNota::query()->orderBy('descripcion');
 
-      $accion = $validated['estado'] === 'Habilitado' ? 'habilitados' : 'No habilitado';
-      $mensaje = "{$count} tipos de nota {$accion} correctamente.";
+    // Aplicar filtros si existen
+    if ($request->has('search') && !empty($request->search)) {
+      $search = $request->search;
+      $query->where('descripcion', 'ILIKE', "%{$search}%");
+    }
 
-      return redirect()
-        ->back()
-        ->with('message', $mensaje)
-        ->with('type', 'success');
+    // Obtener todos los tipos de nota
+    $tiposNota = $query->get();
 
-    } catch (\Exception $e) {
-      return redirect()
-        ->back()
-        ->with('message', 'Error en la operación masiva: ' . $e->getMessage())
-        ->with('type', 'error');
+    // Preparar nombre del archivo
+    $filename = 'tipos_nota_pedido_' . now()->format('Y-m-d_H-i-s');
+
+    if ($format === 'excel') {
+      return $this->exportToExcel($tiposNota, $filename);
+    } else {
+      return $this->exportToPdf($tiposNota, $filename);
     }
   }
 
   /**
-   * Check if descripcion is unique (for real-time validation)
+   * Export to Excel
    */
-  public function checkUniqueDescripcion(Request $request)
+  protected function exportToExcel($tiposNota, $filename)
   {
-    $descripcion = $request->get('descripcion');
-    $excludeId = $request->get('exclude_id');
-
-    $query = TipoNota::where('descripcion', $descripcion);
-
-    if ($excludeId) {
-      $query->where('id', '!=', $excludeId);
-    }
-
-    $exists = $query->exists();
-
-    return response()->json([
-      'available' => !$exists,
-      'message' => $exists ? 'Esta descripción ya está en uso.' : 'Descripción disponible.'
-    ]);
-  }
-
-  /**
-   * Get statistics for dashboard
-   */
-  public function getStats()
-  {
-    $stats = [
-      'total' => TipoNota::count(),
-      'habilitados' => TipoNota::where('estado', 'Habilitado')->count(),
-      'No Habilitado' => TipoNota::where('estado', 'No habilitado')->count(),
-      'recientes' => TipoNota::where('created_at', '>=', now()->subDays(30))->count()
-    ];
-
-    return response()->json($stats);
-  }
-
-  /**
-   * Export tipos de nota to CSV
-   */
-  public function export(Request $request)
-  {
-    $tiposNota = TipoNota::orderBy('descripcion')->get();
-
-    $filename = 'tipos_nota_pedido_' . now()->format('Y-m-d_H-i-s') . '.csv';
-
     $headers = [
       'Content-Type' => 'text/csv; charset=utf-8',
-      'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+      'Content-Disposition' => "attachment; filename=\"{$filename}.csv\"",
     ];
 
     $callback = function() use ($tiposNota) {
@@ -319,5 +323,27 @@ class TipoNotaController extends Controller
     };
 
     return response()->stream($callback, 200, $headers);
+  }
+
+  /**
+   * Export to PDF
+   */
+  protected function exportToPdf($tiposNota, $filename)
+  {
+    // Aquí implementarías la generación del PDF
+    // Por ejemplo, usando una librería como Dompdf, TCPDF o Snappy PDF
+
+    // Ejemplo básico con Dompdf (necesitas instalar barryvdh/laravel-dompdf)
+    /*
+    $pdf = \PDF::loadView('pdf.tipos-nota', [
+        'tiposNota' => $tiposNota,
+        'fecha' => now()->format('d/m/Y H:i:s')
+    ]);
+
+    return $pdf->download($filename . '.pdf');
+    */
+
+    // Como alternativa temporal, exportamos a CSV
+    return $this->exportToExcel($tiposNota, $filename);
   }
 }

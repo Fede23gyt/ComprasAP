@@ -1,114 +1,265 @@
 <!-- resources/js/Components/OficinaFormModal.vue -->
 <script setup>
 import { useForm } from '@inertiajs/vue3';
+import { computed, watch, nextTick } from 'vue';
+import { XMarkIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
-    oficina: { type: Object, default: null },
-    padres: Array,
+  oficina: {
+    type: Object,
+    default: null
+  },
+  padres: {
+    type: Array,
+    default: () => []
+  }
 });
 
 const emit = defineEmits(['close', 'saved']);
 
-const isEdit   = !!props.oficina;
-const form     = useForm({
-    nombre: props.oficina?.nombre ?? '',
-    codigo_oficina: props.oficina?.codigo_oficina ?? '',
-    abreviacion: props.oficina?.abreviacion ?? '',
-    parent_id: props.oficina?.parent_id ?? null,
-    estado: props.oficina?.estado ?? 'Habilitada',
+const isEditing = computed(() => !!props.oficina);
+
+const form = useForm({
+  nombre: props.oficina?.nombre || '',
+  codigo_oficina: props.oficina?.codigo_oficina || '',
+  abreviacion: props.oficina?.abreviacion || '',
+  parent_id: props.oficina?.parent_id || '',
+  estado: props.oficina?.estado || 'Habilitada'
 });
 
+// Limpiar errores cuando se cambian los valores
+watch(() => form.nombre, () => form.clearErrors('nombre'));
+watch(() => form.codigo_oficina, () => form.clearErrors('codigo_oficina'));
+watch(() => form.abreviacion, () => form.clearErrors('abreviacion'));
+
 const submit = () => {
-    const method = isEdit ? 'patch' : 'post';
-    const url    = isEdit ? `/oficinas/${props.oficina.id}` : '/oficinas';
-    form[method](url, {
-        onSuccess: () => emit('saved'),
-        onError: () => {}, // Ziggy muestra errores automáticamente
+  if (isEditing.value) {
+    form.put(`/oficinas/${props.oficina.id}`, {
+      onSuccess: () => {
+        emit('saved');
+        Swal.fire({
+          title: '¡Éxito!',
+          text: 'Oficina actualizada correctamente',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      },
+      onError: () => {
+        Swal.fire({
+          title: 'Error',
+          text: 'Hubo un problema al actualizar la oficina',
+          icon: 'error',
+          confirmButtonColor: '#ef4444'
+        });
+      }
     });
+  } else {
+    form.post('/oficinas', {
+      onSuccess: () => {
+        emit('saved');
+        Swal.fire({
+          title: '¡Éxito!',
+          text: 'Oficina creada correctamente',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      },
+      onError: () => {
+        Swal.fire({
+          title: 'Error',
+          text: 'Hubo un problema al crear la oficina',
+          icon: 'error',
+          confirmButtonColor: '#ef4444'
+        });
+      }
+    });
+  }
 };
 
-const cancel = () => emit('close');
+const closeModal = () => {
+  if (form.isDirty && !form.processing) {
+    Swal.fire({
+      title: '¿Descartar cambios?',
+      text: 'Los cambios no guardados se perderán',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, descartar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form.reset();
+        emit('close');
+      }
+    });
+  } else {
+    form.reset();
+    emit('close');
+  }
+};
+
+// Auto-focus en el primer input
+nextTick(() => {
+  document.querySelector('#nombre')?.focus();
+});
 </script>
 
 <template>
-    <Teleport to="body">
-        <div
-            class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-            @click.self="cancel"
+  <!-- Overlay -->
+  <div
+    class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    @click.self="closeModal"
+  >
+    <!-- Modal -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+      <!-- Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+          {{ isEditing ? 'Editar Oficina' : 'Nueva Oficina' }}
+        </h3>
+        <button
+          @click="closeModal"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
         >
-            <div
-                class="bg-gray-50 dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl p-6 space-y-5"
-            >
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                    {{ isEdit ? 'Modificar' : 'Agregar' }} Oficina
-                </h2>
+          <XMarkIcon class="w-6 h-6" />
+        </button>
+      </div>
 
-                <!-- Campos ordenados -->
-                <!-- 1ª fila -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Nombre</label>
-                    <input v-model="form.nombre" required class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
-                    <div v-if="form.errors.nombre" class="text-red-500 text-xs mt-1">{{ form.errors.nombre }}</div>
-                </div>
-
-                <!-- 2ª fila -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Código</label>
-                        <input v-model="form.codigo_oficina" required class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
-                        <div v-if="form.errors.codigo_oficina" class="text-red-500 text-xs mt-1">{{ form.errors.codigo_oficina }}</div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Abreviación</label>
-                        <input v-model="form.abreviacion" required class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
-                        <div v-if="form.errors.abreviacion" class="text-red-500 text-xs mt-1">{{ form.errors.abreviacion }}</div>
-                    </div>
-                </div>
-
-                <!-- 3ª fila -->
-                <div class="grid grid-cols-2 gap-4 items-center">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Depende de</label>
-                        <select v-model="form.parent_id" class="mt-1 w-full rounded-md">
-                            <option :value="null">Sin padre</option>
-                            <option v-for="p in padres" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Estado</label>
-                        <div class="flex items-center space-x-4 mt-1">
-                            <label class="flex items-center">
-                                <input type="radio" v-model="form.estado" value="Habilitada" class="form-radio text-green-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-200">Habilitada</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" v-model="form.estado" value="No habilitada" class="form-radio text-red-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-200">No habilitada</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Botones fijos -->
-                <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                        type="button"
-                        @click="cancel"
-                        class="px-6 py-2 rounded-md bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 transition"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="submit"
-                        @click="submit"
-                        :disabled="form.processing"
-                        class="px-6 py-2 rounded-md bg-orange-600 text-white hover:bg-orange-500 transition disabled:cursor-not-allowed"
-                    >
-                        Grabar
-                    </button>
-                </div>
-            </div>
+      <!-- Form -->
+      <form @submit.prevent="submit" class="p-6 space-y-5">
+        <!-- Nombre -->
+        <div class="space-y-1">
+          <label for="nombre" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Nombre <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="nombre"
+            v-model="form.nombre"
+            type="text"
+            placeholder="Ingrese el nombre de la oficina"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all"
+            :class="{ 'border-red-500 dark:border-red-500': form.errors.nombre }"
+            required
+          />
+          <p v-if="form.errors.nombre" class="text-sm text-red-600 dark:text-red-400">
+            {{ form.errors.nombre }}
+          </p>
         </div>
-    </Teleport>
+
+        <!-- Código Oficina -->
+        <div class="space-y-1">
+          <label for="codigo_oficina" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Código de Oficina <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="codigo_oficina"
+            v-model="form.codigo_oficina"
+            type="text"
+            placeholder="Ej: OF-001"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white font-mono transition-all"
+            :class="{ 'border-red-500 dark:border-red-500': form.errors.codigo_oficina }"
+            required
+          />
+          <p v-if="form.errors.codigo_oficina" class="text-sm text-red-600 dark:text-red-400">
+            {{ form.errors.codigo_oficina }}
+          </p>
+        </div>
+
+        <!-- Abreviación -->
+        <div class="space-y-1">
+          <label for="abreviacion" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Abreviación <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="abreviacion"
+            v-model="form.abreviacion"
+            type="text"
+            placeholder="Ej: OF1"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all"
+            :class="{ 'border-red-500 dark:border-red-500': form.errors.abreviacion }"
+            required
+          />
+          <p v-if="form.errors.abreviacion" class="text-sm text-red-600 dark:text-red-400">
+            {{ form.errors.abreviacion }}
+          </p>
+        </div>
+
+        <!-- Oficina Padre -->
+        <div class="space-y-1">
+          <label for="parent_id" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Oficina Padre (Opcional)
+          </label>
+          <select
+            id="parent_id"
+            v-model="form.parent_id"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all"
+            :class="{ 'border-red-500 dark:border-red-500': form.errors.parent_id }"
+          >
+            <option value="">Sin oficina padre</option>
+            <option
+              v-for="padre in padres"
+              :key="padre.id"
+              :value="padre.id"
+            >
+              {{ padre.nombre }}
+            </option>
+          </select>
+          <p v-if="form.errors.parent_id" class="text-sm text-red-600 dark:text-red-400">
+            {{ form.errors.parent_id }}
+          </p>
+        </div>
+
+        <!-- Estado -->
+        <div class="space-y-1">
+          <label for="estado" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Estado <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="estado"
+            v-model="form.estado"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all"
+            :class="{ 'border-red-500 dark:border-red-500': form.errors.estado }"
+            required
+          >
+            <option value="Habilitada">Habilitada</option>
+            <option value="No habilitada">No habilitada</option>
+          </select>
+          <p v-if="form.errors.estado" class="text-sm text-red-600 dark:text-red-400">
+            {{ form.errors.estado }}
+          </p>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex space-x-3 pt-4">
+          <button
+            type="button"
+            @click="closeModal"
+            class="flex-1 px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl transition-colors"
+            :disabled="form.processing"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="form.processing"
+          >
+                        <span v-if="form.processing">
+                            {{ isEditing ? 'Actualizando...' : 'Creando...' }}
+                        </span>
+            <span v-else>
+                            {{ isEditing ? 'Actualizar' : 'Crear' }}
+                        </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>

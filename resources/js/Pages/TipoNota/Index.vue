@@ -1,5 +1,3 @@
-// Toggle Estado con SweetAlert2
-const confirmToggleEstado = async (item) => {
 <!-- resources/js/Pages/TipoNota/Index.vue -->
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -7,16 +5,18 @@ import TipoNotaModal from '@/Components/TipoNotaModal.vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 
 const props = defineProps({
-  items: Array
+  items: Object, // paginado
+  filters: Object,
 });
 
-const search = ref('');
+const search = ref(props.filters?.search || '');
 
-// Buscador
-const filteredItems = computed(() =>
-  props.items.filter(item =>
+// Buscador sobre la **página actual**
+const filteredPage = computed(() =>
+  props.items.data.filter(item =>
     item.descripcion.toLowerCase().includes(search.value.toLowerCase())
   )
 );
@@ -46,12 +46,22 @@ const openEditModal = (item) => {
   openModal(item, 'edit');
 };
 
+// Función para normalizar el estado y mostrar correctamente
+const normalizeEstado = (estado) => {
+  return estado === 'Habilitado' ? 'Habilitado' : 'No habilitado';
+};
+
+// Determinar si el estado es habilitado para controles visuales
+const isHabilitado = (estado) => {
+  return estado === 'Habilitado';
+};
+
 // Toggle Estado con SweetAlert2
 const confirmToggleEstado = async (item) => {
   // Determinar el estado actual de forma correcta
   const estaHabilitado = item.estado === 'Habilitado';
   // Usar valores de texto para la base de datos según la definición del enum en PostgreSQL
-  const nuevoEstado = estaHabilitado ? 'No Habilitado' : 'Habilitado';
+  const nuevoEstado = estaHabilitado ? 'No habilitado' : 'Habilitado';
 
   // Mostrar información de depuración en la consola
   console.log('Estado actual:', item.estado);
@@ -71,29 +81,43 @@ const confirmToggleEstado = async (item) => {
   });
 
   if (result.isConfirmed) {
-    const form = useForm({ estado: nuevoEstado });
+    try {
+      // Usamos axios directamente para enviar la solicitud PATCH
+      const response = await axios.patch(`/tipos-nota/${item.id}/toggle-estado`, {
+        estado: nuevoEstado
+      });
 
-    // Mostrar los datos que se van a enviar
-    console.log('Enviando al servidor:', form.data());
+      console.log('Respuesta:', response.data);
 
-    // IMPORTANTE: El controlador hace redirect, no devuelve JSON,
-    // por lo que debemos usar submit con preserveState para manejar correctamente la respuesta
-    form.submit('patch', `/tipos-nota/${item.id}/toggle-estado`, {
-      preserveState: false,
-      onSuccess: () => {
-        // No necesitamos hacer nada aquí porque la página se recargará
-        console.log('Solicitud enviada correctamente');
-      },
-      onError: (errors) => {
-        console.error('Error al cambiar estado:', errors);
+      if (response.data.success) {
+        // Actualizamos el estado localmente con el valor devuelto por el servidor
+        item.estado = response.data.tipoNota.estado;
+
         Swal.fire({
-          title: 'Error',
-          text: 'No se pudo cambiar el estado. Inténtalo nuevamente.',
-          icon: 'error',
-          confirmButtonText: 'Entendido'
+          title: '¡Éxito!',
+          text: response.data.message,
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
         });
+      } else {
+        throw new Error(response.data.message || 'Error al cambiar el estado');
       }
-    });
+    } catch (error) {
+      console.error('Error al cambiar estado:', error);
+
+      // En caso de error, recargamos la página para mantener la sincronización
+      Swal.fire({
+        title: 'Error',
+        text: error.response?.data?.message || error.message || 'No se pudo cambiar el estado. Recargando...',
+        icon: 'error',
+        timer: 2000,
+        showConfirmButton: false,
+        willClose: () => {
+          window.location.reload();
+        }
+      });
+    }
   }
 };
 
@@ -135,6 +159,62 @@ const confirmDelete = async (item) => {
   }
 };
 
+// Exportación con confirmación
+const confirmExport = async (format) => {
+  const formatText = format === 'pdf' ? 'PDF' : 'Excel';
+
+  const result = await Swal.fire({
+    title: `Exportar a ${formatText}`,
+    text: `¿Deseas exportar ${props.items.total} tipos de nota a ${formatText}?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#3b82f6',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: `Sí, exportar a ${formatText}`,
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true
+  });
+
+  if (result.isConfirmed) {
+    // Mostrar loading
+    Swal.fire({
+      title: 'Generando archivo...',
+      text: 'Por favor espera mientras se genera el archivo.',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      // Crear un enlace temporal para descargar
+      const downloadUrl = `/tipos-nota/export/${format}?search=${search.value}`;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `tipos_nota_${new Date().toISOString().split('T')[0]}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Mostrar éxito
+      Swal.fire({
+        title: '¡Éxito!',
+        text: `Archivo ${formatText} generado correctamente`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      Swal.fire({
+        title: 'Error',
+        text: `No se pudo generar el archivo ${formatText}. Inténtalo nuevamente.`,
+        icon: 'error',
+        confirmButtonText: 'Entendido'
+      });
+    }
+  }
+};
+
 // Callback cuando se guarda desde el modal
 const onModalSaved = (message = 'Operación realizada correctamente') => {
   closeModal();
@@ -142,22 +222,9 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
     title: '¡Éxito!',
     text: message,
     icon: 'success',
-    timer: 1500,
-    showConfirmButton: false,
-    willClose: () => {
-      window.location.reload();
-    }
+    timer: 2000,
+    showConfirmButton: false
   });
-};
-
-// Función para normalizar el estado y mostrar correctamente
-const normalizeEstado = (estado) => {
-  return estado === 'Habilitado' ? 'Habilitado' : 'No habilitado';
-};
-
-// Determinar si el estado es habilitado para controles visuales
-const isHabilitado = (estado) => {
-  return estado === 'Habilitado';
 };
 </script>
 
@@ -190,19 +257,54 @@ const isHabilitado = (estado) => {
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Buscar:</span>
             <input
               v-model="search"
+              @input="$inertia.get(route('tipos-nota.index', { search: $event.target.value }))"
               placeholder="Buscar tipo de nota..."
               class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             />
           </label>
         </div>
 
-        <!-- Botón Nuevo -->
-        <button
-          @click="openCreateModal"
-          class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg"
-        >
-          ➕ Nuevo Tipo
-        </button>
+        <!-- Botones de acción -->
+        <div class="flex items-center space-x-3">
+          <!-- Botones de exportación -->
+          <div class="flex items-center space-x-2">
+            <button
+              @click="confirmExport('pdf')"
+              class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
+              title="Exportar a PDF"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <span>PDF</span>
+            </button>
+
+            <button
+              @click="confirmExport('excel')"
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
+              title="Exportar a Excel"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <span>Excel</span>
+            </button>
+          </div>
+
+          <!-- Separador -->
+          <div class="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
+
+          <!-- Botón Nuevo -->
+          <button
+            @click="openCreateModal"
+            class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            <span>Nuevo Tipo</span>
+          </button>
+        </div>
       </div>
 
       <!-- Tabla -->
@@ -223,7 +325,7 @@ const isHabilitado = (estado) => {
           </thead>
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
           <tr
-            v-for="item in filteredItems"
+            v-for="item in filteredPage"
             :key="item.id"
             class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors duration-150"
           >
@@ -287,7 +389,7 @@ const isHabilitado = (estado) => {
           </tr>
 
           <!-- Empty state -->
-          <tr v-if="filteredItems.length === 0">
+          <tr v-if="filteredPage.length === 0">
             <td colspan="3" class="px-6 py-9 text-center">
               <div class="text-gray-500 dark:text-gray-400">
                 <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -310,9 +412,41 @@ const isHabilitado = (estado) => {
         </table>
       </div>
 
-      <!-- Info adicional -->
-      <div class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-        Mostrando {{ filteredItems.length }} de {{ items.length }} tipos de nota de pedido
+      <!-- Paginación moderna -->
+      <div class="mt-6 flex items-center justify-between text-sm">
+        <!-- Info de página -->
+        <p class="text-gray-600 dark:text-gray-300">
+          Mostrando
+          <span class="font-medium">{{ items.from }} - {{ items.to }}</span>
+          de
+          <span class="font-medium">{{ items.total }}</span>
+          tipos de nota
+        </p>
+
+        <!-- Links de paginación -->
+        <nav class="flex space-x-1">
+          <Link
+            v-for="(link, index) in items.links"
+            :key="index"
+            :href="link.url ?? '#'"
+            :class="[
+              'px-3 py-2 rounded-md border text-sm font-medium transition-colors duration-150',
+              link.active
+                ? 'bg-orange-600 text-white border-orange-600'
+                : link.url
+                  ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border-gray-200 dark:border-gray-700'
+            ]"
+            v-html="link.label"
+          />
+        </nav>
+      </div>
+
+      <!-- Resumen de filtros (si hay búsqueda) -->
+      <div v-if="search" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+          Filtrado por: "{{ search }}"
+        </span>
       </div>
     </main>
   </AppLayout>

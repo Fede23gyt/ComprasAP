@@ -1,120 +1,169 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+// routes/web.php - Rutas protegidas con middleware
+
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\OficinaController;
-use App\Http\Controllers\InsumoController;
-use App\Http\Controllers\TipoCompraController;
-use App\Http\Controllers\TipoInsumoController;
 use App\Http\Controllers\TipoNotaController;
-use App\Http\Controllers\MemoController;
 
-// Ruta de bienvenida (página principal)
-Route::get('/', function () {
-  return Inertia::render('Welcome', [
-    'canLogin' => Route::has('login'),
-    'canRegister' => Route::has('register'),
-    'laravelVersion' => Application::VERSION,
-    'phpVersion' => PHP_VERSION,
-  ]);
-});
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
-// Dashboard (requiere autenticación)
-Route::get('/dashboard', function () {
-  return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+  // Rutas de administración - Solo admin, secretario, director
+  Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
 
-// Rutas que requieren autenticación
-Route::middleware('auth')->group(function () {
+    // Gestión de usuarios
+    Route::resource('usuarios', UserController::class)->names([
+      'index' => 'users.index',
+      'create' => 'users.create',
+      'store' => 'users.store',
+      'show' => 'users.show',
+      'edit' => 'users.edit',
+      'update' => 'users.update',
+      'destroy' => 'users.destroy',
+    ]);
 
-  // Perfil de usuario
-  Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-  Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-  Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Rutas adicionales para usuarios
+    Route::patch('usuarios/{user}/toggle-status', [UserController::class, 'toggleStatus'])
+      ->name('users.toggle-status');
+    Route::patch('usuarios/{user}/office-authorization', [UserController::class, 'updateOfficeAuthorization'])
+      ->name('users.office-authorization');
 
-  // Oficinas
-  // Rutas principales del CRUD (sin destroy)
-  Route::resource('oficinas', OficinaController::class)->except(['destroy']);
+    // Gestión de roles
+    Route::resource('roles', RoleController::class);
+    Route::patch('roles/{role}/toggle-status', [RoleController::class, 'toggleStatus'])
+      ->name('roles.toggle-status');
 
-  // Ruta para toggle del estado
-  Route::patch('oficinas/{oficina}/toggle', [OficinaController::class, 'toggle'])
-    ->name('oficinas.toggle');
-
-  // Rutas API adicionales
-  Route::prefix('api/oficinas')->group(function () {
-    // Obtener oficinas para selects (con búsqueda y filtros)
-    Route::get('/', [OficinaController::class, 'getOficinas'])
-      ->name('api.oficinas.index');
-
-    // Obtener jerarquía completa de una oficina
-    Route::get('{oficina}/hierarchy', [OficinaController::class, 'getHierarchy'])
-      ->name('api.oficinas.hierarchy');
-   });
-
-  // Insumos
-  Route::get('/insumos', [InsumoController::class, 'index'])->name('insumos.index');
-  Route::post('/insumos', [InsumoController::class, 'store'])->name('insumos.store');
-  Route::patch('/insumos/{insumo}', [InsumoController::class, 'update'])->name('insumos.update');
-  Route::delete('/insumos/{insumo}', [InsumoController::class, 'destroy'])->name('insumos.destroy');
-  Route::patch('/insumos/{insumo}/toggle-registrable', [InsumoController::class, 'toggleRegistrable'])->name('insumos.toggle-registrable');
-
-// Nuevas rutas para exportación
-  Route::get('/insumos/export/{format}', [InsumoController::class, 'export'])->name('insumos.export');
-
-  // NOMENCLADORES con Resource Routes
-  Route::resource('memos', MemoController::class)->only(['index', 'store', 'update', 'destroy']);
-  //Route::resource('tipo_nota', TipoNotaController::class)->only(['index', 'store', 'update', 'destroy']);
-  Route::resource('tipo_insumo', TipoInsumoController::class)->only(['index', 'store', 'update', 'destroy']);
-
-  // Tipos de Compra (CON PREFIJO para evitar conflictos)
-  Route::prefix('tipos-compras')->name('tipos-compras.')->group(function () {
-    // CRUD básico
-    Route::get('/', [TipoCompraController::class, 'index'])->name('index');
-    Route::get('/create', [TipoCompraController::class, 'create'])->name('create');
-    Route::post('/', [TipoCompraController::class, 'store'])->name('store');
-    Route::get('/{tipoCompra}', [TipoCompraController::class, 'show'])->name('show');
-    Route::get('/{tipoCompra}/edit', [TipoCompraController::class, 'edit'])->name('edit');
-    Route::patch('/{tipoCompra}', [TipoCompraController::class, 'update'])->name('update');
-    Route::delete('/{tipoCompra}', [TipoCompraController::class, 'destroy'])->name('destroy');
-
-    // Rutas adicionales específicas
-    Route::patch('/{tipoCompra}/toggle-estado', [TipoCompraController::class, 'toggleEstado'])->name('toggle-estado');
-    Route::get('/api/activos', [TipoCompraController::class, 'getActivos'])->name('activos');
-    Route::patch('/bulk/toggle-estado', [TipoCompraController::class, 'bulkToggleEstado'])->name('bulk.toggle-estado');
-    Route::get('/api/check-unique', [TipoCompraController::class, 'checkUniqueDescripcion'])->name('check-unique');
-    Route::get('/api/stats', [TipoCompraController::class, 'getStats'])->name('stats');
-    Route::get('/export/{format?}', [TipoCompraController::class, 'export'])->name('export');
+    // APIs para selects
+    Route::get('api/users', [UserController::class, 'getUsersForSelect'])
+      ->name('api.users');
+    Route::get('api/roles', [RoleController::class, 'getRolesForSelect'])
+      ->name('api.roles');
   });
 
-  Route::prefix('tipos-nota')->name('tipos-nota.')->middleware('auth')->group(function () {
+  // Gestión de oficinas - Solo admin, secretario, director
+  Route::middleware(['role:administrador,secretario,director'])->group(function () {
+    Route::resource('oficinas', OficinaController::class)->except(['destroy']);
+    Route::patch('oficinas/{oficina}/toggle', [OficinaController::class, 'toggle'])
+      ->name('oficinas.toggle');
 
-    // CRUD básico
-    Route::get('/', [TipoNotaController::class, 'index'])->name('index');
-    Route::get('/create', [TipoNotaController::class, 'create'])->name('create');
-    Route::post('/', [TipoNotaController::class, 'store'])->name('store');
-    Route::get('/{tipoNota}', [TipoNotaController::class, 'show'])->name('show');
-    Route::get('/{tipoNota}/edit', [TipoNotaController::class, 'edit'])->name('edit');
-    Route::patch('/{tipoNota}', [TipoNotaController::class, 'update'])->name('update');
-    Route::delete('/{tipoNota}', [TipoNotaController::class, 'destroy'])->name('destroy');
-
-    // Rutas adicionales con el mismo patrón
-    Route::patch('/{tipoNota}/toggle-estado', [TipoNotaController::class, 'toggleEstado'])->name('toggle-estado');
-    Route::get('/api/activos', [TipoNotaController::class, 'getActivos'])->name('activos');
-    Route::patch('/bulk/toggle-estado', [TipoNotaController::class, 'bulkToggleEstado'])->name('bulk.toggle-estado');
-    Route::get('/api/check-unique', [TipoNotaController::class, 'checkUniqueDescripcion'])->name('check-unique');
-    Route::get('/api/stats', [TipoNotaController::class, 'getStats'])->name('stats');
-    Route::get('/export/{format?}', [TipoNotaController::class, 'export'])->name('export');
+    // APIs de oficinas
+    Route::prefix('api/oficinas')->group(function () {
+      Route::get('/', [OficinaController::class, 'getOficinas'])
+        ->name('api.oficinas.index');
+      Route::get('{oficina}/hierarchy', [OficinaController::class, 'getHierarchy'])
+        ->name('api.oficinas.hierarchy');
+    });
   });
-    // Rutas específicas con parámetros
-    //Route::patch('/tipos-nota/{tipoNota}/toggle-estado', [TipoNotaController::class, 'toggleEstado'])->name('tipos-nota.toggle-estado');
 
-    // Rutas del resource DESPUÉS
-    //Route::resource('tipos-nota', TipoNotaController::class)->except(['create', 'show', 'edit']);
-    // Alternativamente, también puedes usar resource para tipo_compra si prefieres:
-  // Route::resource('tipo_compra', TipoCompraController::class)->only(['index', 'store', 'update', 'destroy']);
+  // Gestión de tipos de nota - Solo admin, secretario, director
+  Route::middleware(['role:administrador,secretario,director'])->group(function () {
+    Route::resource('tipos-nota', TipoNotaController::class)->names([
+      'index' => 'tipos-nota.index',
+      'create' => 'tipos-nota.create',
+      'store' => 'tipos-nota.store',
+      'show' => 'tipos-nota.show',
+      'edit' => 'tipos-nota.edit',
+      'update' => 'tipos-nota.update',
+      'destroy' => 'tipos-nota.destroy',
+    ]);
+
+    Route::patch('tipos-nota/{tipoNota}/toggle', [TipoNotaController::class, 'toggleEstado'])
+      ->name('tipos-nota.toggle');
+    Route::get('tipos-nota/export/{format}', [TipoNotaController::class, 'export'])
+      ->name('tipos-nota.export');
+  });
+
+  // Rutas para nomencladores (solo lectura) - Todos los usuarios autenticados
+  Route::prefix('nomencladores')->name('nomencladores.')->group(function () {
+    Route::get('insumos', [InsumoController::class, 'nomenclador'])
+      ->name('insumos.index');
+    Route::get('tipos-nota', [TipoNotaController::class, 'nomenclador'])
+      ->name('tipos-nota.index');
+    Route::get('tipos-compra', [TipoCompraController::class, 'nomenclador'])
+      ->name('tipos-compra.index');
+  });
+
+  // Rutas de notas de pedido - Según permisos específicos
+  Route::prefix('notas-pedido')->name('notas-pedido.')->group(function () {
+
+    // Listar y crear notas - Todos los usuarios activos
+    Route::get('/', [NotaPedidoController::class, 'index'])
+      ->name('index');
+    Route::get('create', [NotaPedidoController::class, 'create'])
+      ->name('create');
+    Route::post('/', [NotaPedidoController::class, 'store'])
+      ->name('store');
+
+    // Ver y editar notas específicas
+    Route::get('{notaPedido}', [NotaPedidoController::class, 'show'])
+      ->name('show');
+    Route::get('{notaPedido}/edit', [NotaPedidoController::class, 'edit'])
+      ->name('edit');
+    Route::put('{notaPedido}', [NotaPedidoController::class, 'update'])
+      ->name('update');
+
+    // Consultas - Todos los usuarios
+    Route::get('consultas', [NotaPedidoController::class, 'consultas'])
+      ->name('consultas');
+
+    // Confirmar/Autorizar - Solo usuarios con permiso de autorización
+    Route::middleware(['permission:authorize_notas'])->group(function () {
+      Route::get('confirmar', [NotaPedidoController::class, 'confirmar'])
+        ->name('confirmar');
+      Route::patch('{notaPedido}/autorizar', [NotaPedidoController::class, 'autorizar'])
+        ->name('autorizar');
+    });
+  });
+
+  // Presupuestos - Solo admin, secretario, director
+  Route::middleware(['role:administrador,secretario,director'])->group(function () {
+    Route::resource('presupuestos', PresupuestoController::class);
+  });
+
+  // Órdenes de compra - Solo admin, secretario, director
+  Route::middleware(['role:administrador,secretario,director'])->group(function () {
+    Route::resource('ordenes-compra', OrdenCompraController::class);
+  });
+
+  // Reportes - Acceso según rol
+  Route::prefix('reportes')->name('reportes.')->group(function () {
+
+    // Reportes básicos - Todos los usuarios
+    Route::get('/', [ReporteController::class, 'index'])
+      ->name('index');
+    Route::get('mis-notas', [ReporteController::class, 'misNotas'])
+      ->name('mis-notas');
+
+    // Reportes completos - Solo roles superiores
+    Route::middleware(['permission:view_all_reports'])->group(function () {
+      Route::get('todas-notas', [ReporteController::class, 'todasNotas'])
+        ->name('todas-notas');
+      Route::get('por-oficina', [ReporteController::class, 'porOficina'])
+        ->name('por-oficina');
+      Route::get('estadisticas', [ReporteController::class, 'estadisticas'])
+        ->name('estadisticas');
+    });
+  });
+
+  // API para obtener datos según permisos del usuario
+  Route::prefix('api')->name('api.')->group(function () {
+
+    // Oficinas disponibles para el usuario
+    Route::get('mis-oficinas', [UserController::class, 'getMisOficinas'])
+      ->name('mis-oficinas');
+
+    // Tipos de nota activos
+    Route::get('tipos-nota-activos', [TipoNotaController::class, 'getActivos'])
+      ->name('tipos-nota-activos');
+  });
+
 });
 
-// Rutas de autenticación (SIEMPRE al final)
-require __DIR__.'/auth.php';
+// Ruta para perfil de usuario - Todos los usuarios autenticados
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+  Route::get('perfil', [PerfilController::class, 'show'])
+    ->name('perfil.show');
+  Route::put('perfil', [PerfilController::class, 'update'])
+    ->name('perfil.update');
+});

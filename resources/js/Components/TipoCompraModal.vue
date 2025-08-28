@@ -118,7 +118,7 @@ const submitForm = async () => {
 
   // Submit del formulario
   if (props.mode === 'create') {
-    form.post('/tipos-compras', {
+    form.post('/nomencladores/tipos-compra', {
       onSuccess: () => {
         emit('saved', 'Tipo de compra creado correctamente');
       },
@@ -127,7 +127,7 @@ const submitForm = async () => {
       }
     });
   } else {
-    form.patch(`/tipos-compras/${props.item.id}`, {
+    form.patch(`/nomencladores/tipos-compra/${props.item.id}`, {
       onSuccess: () => {
         emit('saved', 'Tipo de compra actualizado correctamente');
       },
@@ -236,7 +236,7 @@ onUnmounted(() => {
             :class="{ 'border-red-500': form.errors.estado }"
           >
             <option value="Habilitado">Habilitado</option>
-            <option value="Deshabilitado">Deshabilitado</option>
+            <option value="No habilitado">No habilitado</option>
           </select>
           <div v-if="form.errors.estado" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ form.errors.estado }}

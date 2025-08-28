@@ -900,7 +900,7 @@ document.removeEventListener('keydown', handleKeydown);
                   class="text-sm font-medium"
                   :class="form.registrable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
                 >
-                  {{ form.registrable ? 'Habilitado' : 'Deshabilitado' }}
+                  {{ form.registrable ? 'Habilitado' : 'No habilitado' }}
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">
                   {{ form.registrable ? 'Puede ser registrado' : 'No puede ser registrado' }}

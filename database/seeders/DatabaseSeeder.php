@@ -21,9 +21,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
-            RolesSeeder::class,
-            UsersTableSeeder::class,
-            OficinaSeeder::class,
+          TestUsersSeeder::class,
+          RoleSeeder::class,
+          OficinaSeeder::class,
+          TipoCompraSeeder::class,
+          TipoNotaSeeder::class,
+          UsuarioOficinaSeeder::class,
+
         ]);
     }
 }

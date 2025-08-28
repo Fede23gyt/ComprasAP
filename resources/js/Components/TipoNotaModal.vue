@@ -3,7 +3,6 @@
 import { ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
-import axios from 'axios'; // Agregamos axios para peticiones AJAX
 
 const props = defineProps({
   item: {
@@ -43,40 +42,37 @@ const submit = () => {
 
   if (props.mode === 'create') {
     // Para creación, usamos axios directamente
-    axios.post('/tipos-nota', form.data())
-      .then(response => {
-        console.log('Respuesta exitosa:', response.data);
+    form.post('/nomencladores/tipos-nota', {
+      onSuccess: () => {
         emit('saved', 'Tipo de nota creado correctamente');
-        // El evento saved se encargará de cerrar el modal y recargar la página
-      })
-      .catch(error => {
-        console.error('Errores en la creación:', error.response?.data);
-        // Mostrar un mensaje de error
+      },
+      onError: (errors) => {
+        console.error('Errores en la creación:', errors);
+        const errorMessages = Object.values(errors).flat();
         Swal.fire({
           title: 'Error',
-          text: error.response?.data?.message || 'No se pudo crear el tipo de nota. Revisa los errores e inténtalo nuevamente.',
+          html: `<ul style="text-align: left;">${errorMessages.map(error => `<li>${error}</li>`).join('')}</ul>`,
           icon: 'error',
           confirmButtonText: 'Entendido'
         });
-      });
+      }
+    });
   } else if (props.mode === 'edit') {
-    // Para edición, usamos axios directamente
-    axios.patch(`/tipos-nota/${props.item.id}`, form.data())
-      .then(response => {
-        console.log('Respuesta exitosa:', response.data);
+    form.patch(`/nomencladores/tipos-nota/${props.item.id}`, {
+      onSuccess: () => {
         emit('saved', 'Tipo de nota actualizado correctamente');
-        // El evento saved se encargará de cerrar el modal y recargar la página
-      })
-      .catch(error => {
-        console.error('Errores en la actualización:', error.response?.data);
-        // Mostrar un mensaje de error
+      },
+      onError: (errors) => {
+        console.error('Errores en la actualización:', errors);
+        const errorMessages = Object.values(errors).flat();
         Swal.fire({
           title: 'Error',
-          text: error.response?.data?.message || 'No se pudo actualizar el tipo de nota. Revisa los errores e inténtalo nuevamente.',
+          html: `<ul style="text-align: left;">${errorMessages.map(error => `<li>${error}</li>`).join('')}</ul>`,
           icon: 'error',
           confirmButtonText: 'Entendido'
         });
-      });
+      }
+    });
   }
 };
 </script>

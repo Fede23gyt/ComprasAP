@@ -112,7 +112,7 @@
       <td>{{ $insumo->codigo }}</td>
       <td>{{ $insumo->descripcion }}</td>
       <td>{{ $insumo->clasificacion }}</td>
-      <td>{{ $insumo->clasif_economica->descripcion ?? '-' }}</td>
+      <td>{{ $insumo->clasificacionEconomica->descripcion ?? '-' }}</td>
       <td class="{{ $insumo->registrable ? 'registrable-si' : 'registrable-no' }}">
         {{ $insumo->registrable ? 'Sí' : 'No' }}
       </td>

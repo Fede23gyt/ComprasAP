@@ -83,9 +83,7 @@ const confirmToggleEstado = async (item) => {
   if (result.isConfirmed) {
     try {
       // Usamos axios directamente para enviar la solicitud PATCH
-      const response = await axios.patch(`/tipos-nota/${item.id}/toggle-estado`, {
-        estado: nuevoEstado
-      });
+      const response = await axios.patch(`/nomencladores/tipos-nota/${item.id}/toggle`);
 
       console.log('Respuesta:', response.data);
 

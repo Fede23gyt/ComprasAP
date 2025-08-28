@@ -46,23 +46,23 @@ const openEditModal = (item) => {
 
 // Toggle Estado con SweetAlert2
 const confirmToggleEstado = async (item) => {
-  const nuevoEstado = item.estado === 'Habilitado' ? 'Deshabilitado' : 'Habilitado';
+  const nuevoEstado = item.estado === 'Habilitado' ? 'No habilitado' : 'Habilitado';
 
   const result = await Swal.fire({
     title: '¿Confirmar cambio de estado?',
-    text: `¿Deseas ${nuevoEstado === 'Deshabilitado' ? 'deshabilitar' : 'habilitar'} el tipo de compra "${item.descripcion}"?`,
+    text: `¿Deseas ${nuevoEstado === 'No habilitado' ? 'deshabilitar' : 'habilitar'} el tipo de compra "${item.descripcion}"?`,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: nuevoEstado === 'Deshabilitado' ? '#ef4444' : '#22c55e',
+    confirmButtonColor: nuevoEstado === 'No habilitado' ? '#ef4444' : '#22c55e',
     cancelButtonColor: '#6b7280',
-    confirmButtonText: nuevoEstado === 'Deshabilitado' ? 'Sí, deshabilitar' : 'Sí, habilitar',
+    confirmButtonText: nuevoEstado === 'No habilitado' ? 'Sí, deshabilitar' : 'Sí, habilitar',
     cancelButtonText: 'Cancelar',
     reverseButtons: true
   });
 
   if (result.isConfirmed) {
-    useForm({ estado: nuevoEstado })
-      .patch(`/tipos-compras/${item.id}/toggle-estado`, {
+    useForm({})
+      .patch(`/nomencladores/tipos-compra/${item.id}/toggle`, {
         onSuccess: () => {
           Swal.fire({
             title: '¡Éxito!',

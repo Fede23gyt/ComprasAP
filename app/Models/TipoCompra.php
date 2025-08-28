@@ -56,7 +56,7 @@ class TipoCompra extends Model
    */
   public function scopeDeshabilitados($query)
   {
-    return $query->where('estado', 'Deshabilitado');
+    return $query->where('estado', 'No habilitado');
   }
 
   /**
@@ -131,7 +131,7 @@ class TipoCompra extends Model
   {
     return [
       'Habilitado' => 'Habilitado',
-      'Deshabilitado' => 'Deshabilitado',
+      'No habilitado' => 'No habilitado',
     ];
   }
 
@@ -140,7 +140,7 @@ class TipoCompra extends Model
    */
   public function toggleEstado()
   {
-    $this->estado = $this->estado === 'Habilitado' ? 'Deshabilitado' : 'Habilitado';
+    $this->estado = $this->estado === 'Habilitado' ? 'No habilitado' : 'Habilitado';
     return $this->save();
   }
 

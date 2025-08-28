@@ -120,6 +120,7 @@ class TipoNotaController extends Controller
    */
   public function update(Request $request, TipoNota $tipoNota)
   {
+    
     $validated = $request->validate([
       'descripcion' => [
         'required',
@@ -198,21 +199,12 @@ class TipoNotaController extends Controller
    */
   public function toggleEstado(Request $request, TipoNota $tipoNota)
   {
-    $validated = $request->validate([
-      'estado' => [
-        'required',
-        Rule::in(['Habilitado', 'No habilitado'])
-      ]
-    ], [
-      'estado.required' => 'El estado es obligatorio.',
-      'estado.in' => 'El estado debe ser Habilitado o No habilitado.'
-    ]);
-
     try {
       $estadoAnterior = $tipoNota->estado;
-      $tipoNota->update(['estado' => $validated['estado']]);
+      $nuevoEstado = $estadoAnterior === 'Habilitado' ? 'No habilitado' : 'Habilitado';
+      $tipoNota->update(['estado' => $nuevoEstado]);
 
-      $mensaje = $validated['estado'] === 'Habilitado'
+      $mensaje = $nuevoEstado === 'Habilitado'
         ? "Tipo de nota '{$tipoNota->descripcion}' habilitado correctamente."
         : "Tipo de nota '{$tipoNota->descripcion}' deshabilitado correctamente.";
 
@@ -294,35 +286,7 @@ class TipoNotaController extends Controller
    */
   protected function exportToExcel($tiposNota, $filename)
   {
-    $headers = [
-      'Content-Type' => 'text/csv; charset=utf-8',
-      'Content-Disposition' => "attachment; filename=\"{$filename}.csv\"",
-    ];
-
-    $callback = function() use ($tiposNota) {
-      $file = fopen('php://output', 'w');
-
-      // BOM para UTF-8
-      fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-
-      // Headers CSV
-      fputcsv($file, ['ID', 'Descripción', 'Estado', 'Creado', 'Actualizado']);
-
-      // Data
-      foreach ($tiposNota as $tipo) {
-        fputcsv($file, [
-          $tipo->id,
-          $tipo->descripcion,
-          $tipo->estado,
-          $tipo->created_at?->format('d/m/Y H:i:s'),
-          $tipo->updated_at?->format('d/m/Y H:i:s')
-        ]);
-      }
-
-      fclose($file);
-    };
-
-    return response()->stream($callback, 200, $headers);
+    return \Excel::download(new \App\Exports\TiposNotaExport($tiposNota), $filename . '.xlsx');
   }
 
   /**
@@ -330,20 +294,14 @@ class TipoNotaController extends Controller
    */
   protected function exportToPdf($tiposNota, $filename)
   {
-    // Aquí implementarías la generación del PDF
-    // Por ejemplo, usando una librería como Dompdf, TCPDF o Snappy PDF
-
-    // Ejemplo básico con Dompdf (necesitas instalar barryvdh/laravel-dompdf)
-    /*
     $pdf = \PDF::loadView('pdf.tipos-nota', [
         'tiposNota' => $tiposNota,
         'fecha' => now()->format('d/m/Y H:i:s')
     ]);
 
+    // Configurar el PDF
+    $pdf->setPaper('A4', 'portrait');
+    
     return $pdf->download($filename . '.pdf');
-    */
-
-    // Como alternativa temporal, exportamos a CSV
-    return $this->exportToExcel($tiposNota, $filename);
   }
 }

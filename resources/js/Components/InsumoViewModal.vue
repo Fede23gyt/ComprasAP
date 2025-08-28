@@ -74,7 +74,7 @@ const closeModal = () => emit('close')
 
 const submitForm = () => {
   if (props.mode === 'create') {
-    form.post('/insumos', {
+    form.post('/nomencladores/insumos', {
       onSuccess: () => {
         emit('saved', 'Insumo creado correctamente')
       },
@@ -83,7 +83,7 @@ const submitForm = () => {
       }
     })
   } else if (props.mode === 'edit' && props.item) {
-    form.patch(`/insumos/${props.item.id}`, {
+    form.put(`/nomencladores/insumos/${props.item.id}`, {
       onSuccess: () => {
         emit('saved', 'Insumo actualizado correctamente')
       },
@@ -161,8 +161,8 @@ const descripcionLength = computed(() => {
                 {{ form.errors.clasificacion }}
               </div>
               <!-- Mostrar descripción de la clasificación si existe -->
-              <div v-if="item?.clasif_economica?.descripcion" class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                {{ item.clasif_economica.descripcion }}
+              <div v-if="item?.clasificacion_economica?.descripcion" class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                {{ item.clasificacion_economica.descripcion }}
               </div>
             </div>
 

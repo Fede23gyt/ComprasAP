@@ -1,5 +1,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
 import DarkToggle from '@/Components/DarkToggle.vue';
 
 const form = useForm({
@@ -10,6 +11,7 @@ const form = useForm({
 </script>
 
 <template>
+  <AuthLayout>
     <div
         :class="[
       'min-h-screen flex items-center justify-center bg-cover bg-center',
@@ -105,4 +107,5 @@ const form = useForm({
             </p>
         </div>
     </div>
+  </AuthLayout>
 </template>

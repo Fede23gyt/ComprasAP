@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-  use HasFactory, Notifiable;
+  use HasFactory, Notifiable, HasRoles;
 
   protected $fillable = [
     'name',
@@ -85,27 +86,20 @@ class User extends Authenticatable
   }
 
   /**
-   * Verificar si el usuario tiene un rol específico
+   * Obtener el rol principal del usuario (compatibilidad con sistema anterior)
    */
-  public function hasRole(string $roleName): bool
+  public function getMainRole()
   {
-    return $this->role && $this->role->name === $roleName;
+    return $this->roles->first();
   }
 
   /**
-   * Verificar si el usuario tiene alguno de los roles especificados
+   * Obtener el nombre del rol principal
    */
-  public function hasAnyRole(array $roles): bool
+  public function getRoleNameAttribute(): ?string
   {
-    return $this->role && in_array($this->role->name, $roles);
-  }
-
-  /**
-   * Verificar si el usuario tiene un permiso específico
-   */
-  public function hasPermission(string $permission): bool
-  {
-    return $this->role && $this->role->hasPermission($permission);
+    $role = $this->getMainRole();
+    return $role ? $role->display_name ?? $role->name : null;
   }
 
   /**
@@ -113,7 +107,7 @@ class User extends Authenticatable
    */
   public function isAdmin(): bool
   {
-    return $this->role && $this->role->isAdmin();
+    return $this->hasRole('administrador');
   }
 
   /**
@@ -121,7 +115,7 @@ class User extends Authenticatable
    */
   public function isSupervisor(): bool
   {
-    return $this->role && $this->role->isSupervisor();
+    return $this->hasAnyRole(['administrador', 'secretario', 'director']);
   }
 
   /**
@@ -129,7 +123,7 @@ class User extends Authenticatable
    */
   public function canManageConfig(): bool
   {
-    return $this->role && $this->role->canManageConfig();
+    return $this->can('manage_users') || $this->isSupervisor();
   }
 
   /**
@@ -137,7 +131,7 @@ class User extends Authenticatable
    */
   public function canCreateForAnyOffice(): bool
   {
-    return $this->role && $this->role->canCreateForAnyOffice();
+    return $this->can('create_notes') || $this->isSupervisor();
   }
 
   /**
@@ -145,7 +139,7 @@ class User extends Authenticatable
    */
   public function canAuthorize(): bool
   {
-    return $this->role && $this->role->canAuthorize();
+    return $this->can('authorize_notes') || $this->isSupervisor();
   }
 
   /**
@@ -186,13 +180,6 @@ class User extends Authenticatable
     return $this->oficinas->pluck('id')->toArray();
   }
 
-  /**
-   * Obtener nombre completo del rol
-   */
-  public function getRoleNameAttribute(): ?string
-  {
-    return $this->role?->display_name;
-  }
 
   /**
    * Verificar si el usuario está activo

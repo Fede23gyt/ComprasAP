@@ -160,6 +160,12 @@ class UserController extends Controller
         'observaciones' => $validated['observaciones'],
       ]);
 
+      // Asignar rol usando Spatie Permission también
+      $role = \App\Models\Role::find($validated['role_id']);
+      if ($role) {
+        $user->assignRole($role->name);
+      }
+
       // Asignar oficinas si se proporcionaron
       if (!empty($validated['oficinas'])) {
         $oficinasPrincipal = $validated['oficina_principal'] ?? null;
@@ -308,6 +314,12 @@ class UserController extends Controller
       }
 
       $user->update($updateData);
+
+      // Actualizar rol usando Spatie Permission también
+      $role = \App\Models\Role::find($validated['role_id']);
+      if ($role) {
+        $user->syncRoles([$role->name]);
+      }
 
       // Actualizar oficinas si se proporcionaron
       if (isset($validated['oficinas'])) {

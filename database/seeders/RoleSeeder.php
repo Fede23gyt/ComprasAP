@@ -66,6 +66,18 @@ class RoleSeeder extends Seeder
         'is_active' => true,
       ],
       [
+        'name' => 'supervisor',
+        'display_name' => 'Supervisor',
+        'description' => 'Supervisión de notas de pedido y gestión de oficinas específicas',
+        'permissions' => json_encode([
+          'create_any_nota',
+          'authorize_notas',
+          'view_reports',
+          'reopen_notas',
+        ]),
+        'is_active' => true,
+      ],
+      [
         'name' => 'invitado',
         'display_name' => 'Invitado',
         'description' => 'Acceso de solo lectura a nomencladores y consultas básicas',

@@ -151,9 +151,8 @@ class Insumo extends Model
   /**
    * Relación con clasificación económica (si existe)
    */
-  public function clasifEconomica()
+  public function clasificacionEconomica()
   {
     return $this->belongsTo(ClasifEconomica::class, 'clasificacion', 'codigo');
-
   }
 }

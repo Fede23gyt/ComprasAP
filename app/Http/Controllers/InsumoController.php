@@ -20,7 +20,7 @@ class InsumoController extends Controller
       $search = $request->get('search', '');
 
       // Query base con la relación
-      $query = Insumo::with('clasifEconomica');
+      $query = Insumo::with('clasificacionEconomica');
 
       // Aplicar filtros de búsqueda si existe
       if ($search) {
@@ -28,7 +28,7 @@ class InsumoController extends Controller
           $q->where('codigo', 'LIKE', "%{$search}%")
             ->orWhere('descripcion', 'LIKE', "%{$search}%")
             ->orWhere('clasificacion', 'LIKE', "%{$search}%")
-            ->orWhereHas('clasifEconomica', function ($subq) use ($search) {
+            ->orWhereHas('clasificacionEconomica', function ($subq) use ($search) {
               $subq->where('descripcion', 'LIKE', "%{$search}%");
             });
         });
@@ -39,9 +39,12 @@ class InsumoController extends Controller
         ->paginate(15)
         ->withQueryString(); // Mantener parámetros de búsqueda
 
-      return Inertia::render('Insumos/Index', [
+      return Inertia::render('Nomencladores/Insumos', [
+        'title' => 'Nomenclador de Insumos',
         'insumos' => $insumos,
-        'padres' => [] // Si necesitas esta prop para algo más
+        'filters' => [
+          'search' => $search
+        ]
       ]);
     }
 
@@ -96,6 +99,32 @@ class InsumoController extends Controller
           ->with('message', 'Error al crear el insumo: ' . $e->getMessage())
           ->with('type', 'error');
       }
+    }
+
+    /**
+     * Muestra un insumo específico.
+     */
+    public function show(Insumo $insumo)
+    {
+      $insumo->load('clasificacionEconomica');
+      
+      return response()->json([
+        'insumo' => $insumo
+      ]);
+    }
+
+    /**
+     * Muestra el formulario de edición para un insumo.
+     */
+    public function edit(Insumo $insumo)
+    {
+      $insumo->load('clasificacionEconomica');
+      $clasificaciones = ClasifEconomica::orderBy('descripcion')->get();
+      
+      return response()->json([
+        'insumo' => $insumo,
+        'clasificaciones' => $clasificaciones
+      ]);
     }
 
     /**
@@ -191,14 +220,14 @@ class InsumoController extends Controller
     $search = $request->get('search', '');
 
     // Obtener los insumos con filtros y relación
-    $query = Insumo::with('clasifEconomica');
+    $query = Insumo::with('clasificacionEconomica');
 
     if ($search) {
       $query->where(function ($q) use ($search) {
         $q->where('descripcion', 'LIKE', "%{$search}%")
           ->orWhere('codigo', 'LIKE', "%{$search}%")
           ->orWhere('clasificacion', 'LIKE', "%{$search}%")
-          ->orWhereHas('clasifEconomica', function ($subq) use ($search) {
+          ->orWhereHas('clasificacionEconomica', function ($subq) use ($search) {
             $subq->where('descripcion', 'LIKE', "%{$search}%");
           });
       });
@@ -245,6 +274,15 @@ class InsumoController extends Controller
    */
   private function exportToExcel($insumos, $search = '')
   {
+    // Verificar si Laravel Excel está disponible
+    if (class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
+      return \Maatwebsite\Excel\Facades\Excel::download(
+        new \App\Exports\InsumosExport($insumos), 
+        'insumos_' . now()->format('Y-m-d_H-i-s') . '.xlsx'
+      );
+    }
+    
+    // Fallback a CSV si Excel no está disponible
     $filename = 'insumos_' . now()->format('Y-m-d_H-i-s') . '.csv';
 
     $headers = [
@@ -285,7 +323,7 @@ class InsumoController extends Controller
           $insumo->codigo,
           $insumo->descripcion,
           $insumo->clasificacion,
-          $insumo->clasifEconomica?->descripcion ?? '',
+          $insumo->clasificacionEconomica?->descripcion ?? '',
           $insumo->presentacion ?? '',
           $insumo->unidad_solicitud ?? '',
           $insumo->precio_insumo ?? '',

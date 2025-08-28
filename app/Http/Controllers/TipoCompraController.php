@@ -43,14 +43,14 @@ class TipoCompraController extends Controller
       ],
       'estado' => [
         'required',
-        'in:Habilitado,Deshabilitado'
+        'in:Habilitado,No habilitado'
       ]
     ], [
       'descripcion.required' => 'La descripción es obligatoria.',
       'descripcion.max' => 'La descripción no puede exceder los 255 caracteres.',
       'descripcion.unique' => 'Ya existe un tipo de compra con esta descripción.',
       'estado.required' => 'El estado es obligatorio.',
-      'estado.in' => 'El estado debe ser Habilitado o Deshabilitado.'
+      'estado.in' => 'El estado debe ser Habilitado o No habilitado.'
     ]);
 
     try {
@@ -95,6 +95,7 @@ class TipoCompraController extends Controller
    */
   public function update(Request $request, TipoCompra $tipoCompra)
   {
+    
     $validated = $request->validate([
       'descripcion' => [
         'required',
@@ -104,14 +105,14 @@ class TipoCompraController extends Controller
       ],
       'estado' => [
         'required',
-        'in:Habilitado,Deshabilitado'
+        'in:Habilitado,No habilitado'
       ]
     ], [
       'descripcion.required' => 'La descripción es obligatoria.',
       'descripcion.max' => 'La descripción no puede exceder los 255 caracteres.',
       'descripcion.unique' => 'Ya existe un tipo de compra con esta descripción.',
       'estado.required' => 'El estado es obligatorio.',
-      'estado.in' => 'El estado debe ser Habilitado o Deshabilitado.'
+      'estado.in' => 'El estado debe ser Habilitado o No habilitado.'
     ]);
 
     try {
@@ -169,21 +170,12 @@ class TipoCompraController extends Controller
    */
   public function toggleEstado(Request $request, TipoCompra $tipoCompra)
   {
-    $validated = $request->validate([
-      'estado' => [
-        'required',
-        'in:Habilitado,Deshabilitado'
-      ]
-    ], [
-      'estado.required' => 'El estado es obligatorio.',
-      'estado.in' => 'El estado debe ser Habilitado o Deshabilitado.'
-    ]);
-
     try {
       $estadoAnterior = $tipoCompra->estado;
-      $tipoCompra->update(['estado' => $validated['estado']]);
+      $nuevoEstado = $estadoAnterior === 'Habilitado' ? 'No habilitado' : 'Habilitado';
+      $tipoCompra->update(['estado' => $nuevoEstado]);
 
-      $mensaje = $validated['estado'] === 'Habilitado'
+      $mensaje = $nuevoEstado === 'Habilitado'
         ? "Tipo de compra '{$tipoCompra->descripcion}' habilitado correctamente."
         : "Tipo de compra '{$tipoCompra->descripcion}' deshabilitado correctamente.";
 
@@ -220,7 +212,7 @@ class TipoCompraController extends Controller
     $validated = $request->validate([
       'ids' => 'required|array',
       'ids.*' => 'exists:tipos_compras,id',
-      'estado' => 'required|in:Habilitado,Deshabilitado'
+      'estado' => 'required|in:Habilitado,No habilitado'
     ]);
 
     try {
@@ -273,7 +265,7 @@ class TipoCompraController extends Controller
     $stats = [
       'total' => TipoCompra::count(),
       'habilitados' => TipoCompra::where('estado', 'Habilitado')->count(),
-      'deshabilitados' => TipoCompra::where('estado', 'Deshabilitado')->count(),
+      'deshabilitados' => TipoCompra::where('estado', 'No habilitado')->count(),
       'recientes' => TipoCompra::where('created_at', '>=', now()->subDays(30))->count()
     ];
 
@@ -283,44 +275,46 @@ class TipoCompraController extends Controller
   /**
    * Export tipos de compra to CSV/Excel
    */
-  public function export(Request $request)
+  public function export(Request $request, $format)
   {
-    $format = $request->get('format', 'csv'); // csv, excel
-
-    $tiposCompras = TipoCompra::orderBy('descripcion')->get();
-
-    if ($format === 'csv') {
-      $filename = 'tipos_compras_' . now()->format('Y-m-d_H-i-s') . '.csv';
-
-      $headers = [
-        'Content-Type' => 'text/csv',
-        'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-      ];
-
-      $callback = function() use ($tiposCompras) {
-        $file = fopen('php://output', 'w');
-
-        // Headers CSV
-        fputcsv($file, ['ID', 'Descripción', 'Estado', 'Creado', 'Actualizado']);
-
-        // Data
-        foreach ($tiposCompras as $tipo) {
-          fputcsv($file, [
-            $tipo->id,
-            $tipo->descripcion,
-            $tipo->estado,
-            $tipo->created_at?->format('Y-m-d H:i:s'),
-            $tipo->updated_at?->format('Y-m-d H:i:s')
-          ]);
-        }
-
-        fclose($file);
-      };
-
-      return response()->stream($callback, 200, $headers);
+    // Validar formato
+    if (!in_array($format, ['pdf', 'excel'])) {
+      return redirect()->back()->with('error', 'Formato de exportación no válido.');
     }
 
-    // Para Excel necesitarías una librería como Laravel Excel
-    return redirect()->back()->with('message', 'Formato no soportado')->with('type', 'error');
+    // Obtener datos
+    $tiposCompra = TipoCompra::orderBy('descripcion')->get();
+    $filename = 'nomenclador_tipos_compra_' . now()->format('Y-m-d_H-i-s');
+
+    // Exportar según formato
+    if ($format === 'excel') {
+      return $this->exportToExcel($tiposCompra, $filename);
+    } else {
+      return $this->exportToPdf($tiposCompra, $filename);
+    }
+  }
+
+  /**
+   * Export to Excel
+   */
+  protected function exportToExcel($tiposCompra, $filename)
+  {
+    return \Excel::download(new \App\Exports\TiposCompraExport($tiposCompra), $filename . '.xlsx');
+  }
+
+  /**
+   * Export to PDF
+   */
+  protected function exportToPdf($tiposCompra, $filename)
+  {
+    $pdf = \PDF::loadView('pdf.tipos-compra', [
+        'tiposCompra' => $tiposCompra,
+        'fecha' => now()->format('d/m/Y H:i:s')
+    ]);
+
+    // Configurar el PDF
+    $pdf->setPaper('A4', 'portrait');
+    
+    return $pdf->download($filename . '.pdf');
   }
 }

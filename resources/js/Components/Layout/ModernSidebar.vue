@@ -178,7 +178,9 @@ import {
   PresentationChartLineIcon,
   BookOpenIcon,
   TagIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  // New icons
+  DocumentIcon
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -268,7 +270,8 @@ const menuSections = computed(() => {
           { name: 'Insumos', route: '/nomencladores/insumos', icon: TagIcon },
           { name: 'Oficinas', route: '/nomencladores/oficinas', icon: BuildingOfficeIcon },
           { name: 'Tipos de Nota', route: '/nomencladores/tipos-nota', icon: DocumentTextIcon },
-          { name: 'Tipos de Compra', route: '/nomencladores/tipos-compra', icon: ShoppingCartIcon }
+          { name: 'Tipos de Compra', route: '/nomencladores/tipos-compra', icon: ShoppingCartIcon },
+          { name: 'Memos', route: '/nomencladores/memos', icon: DocumentIcon }
         ]
       }
     ]

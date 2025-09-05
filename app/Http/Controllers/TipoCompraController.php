@@ -26,7 +26,7 @@ class TipoCompraController extends Controller
    */
   public function create()
   {
-    return Inertia::render('TiposCompras/Create');
+    return Inertia::render('TipoCompra/Create');
   }
 
   /**
@@ -57,7 +57,7 @@ class TipoCompraController extends Controller
       TipoCompra::create($validated);
 
       return redirect()
-        ->route('tipos-compras.index')
+        ->route('nomencladores.tipos-compra.index')
         ->with('message', 'Tipo de compra creado correctamente.')
         ->with('type', 'success');
 
@@ -75,7 +75,7 @@ class TipoCompraController extends Controller
    */
   public function show(TipoCompra $tipoCompra)
   {
-    return Inertia::render('TiposCompras/Show', [
+    return Inertia::render('TipoCompra/Show', [
       'tipoCompra' => $tipoCompra
     ]);
   }
@@ -85,7 +85,7 @@ class TipoCompraController extends Controller
    */
   public function edit(TipoCompra $tipoCompra)
   {
-    return Inertia::render('TiposCompras/Edit', [
+    return Inertia::render('TipoCompra/Edit', [
       'tipoCompra' => $tipoCompra
     ]);
   }
@@ -119,7 +119,7 @@ class TipoCompraController extends Controller
       $tipoCompra->update($validated);
 
       return redirect()
-        ->route('tipos-compras.index')
+        ->route('nomencladores.tipos-compra.index')
         ->with('message', 'Tipo de compra actualizado correctamente.')
         ->with('type', 'success');
 
@@ -153,7 +153,7 @@ class TipoCompraController extends Controller
       $tipoCompra->delete();
 
       return redirect()
-        ->route('tipos-compras.index')
+        ->route('nomencladores.tipos-compra.index')
         ->with('message', "Tipo de compra '{$descripcion}' eliminado correctamente.")
         ->with('type', 'success');
 
@@ -211,7 +211,7 @@ class TipoCompraController extends Controller
   {
     $validated = $request->validate([
       'ids' => 'required|array',
-      'ids.*' => 'exists:tipos_compras,id',
+      'ids.*' => 'exists:tipo_compra,id',
       'estado' => 'required|in:Habilitado,No habilitado'
     ]);
 

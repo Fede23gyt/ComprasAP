@@ -1,5 +1,5 @@
 <template>
-  <AuthenticatedLayout>
+  <AppLayout title="Gestión de Usuarios">
     <div class="py-6">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
@@ -375,13 +375,13 @@
         </div>
       </div>
     </div>
-  </AuthenticatedLayout>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { useConfirm } from '@/Composables/useConfirm'
 import { 
   UsersIcon, 

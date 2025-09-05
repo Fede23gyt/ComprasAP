@@ -129,7 +129,7 @@ class OficinaController extends Controller
       Oficina::create($validated);
 
       return redirect()
-        ->route('oficinas.index')
+        ->route('nomencladores.oficinas.index')
         ->with('success', 'Oficina creada correctamente.');
     } catch (\Exception $e) {
       return redirect()
@@ -252,7 +252,7 @@ class OficinaController extends Controller
       $oficina->update($validated);
 
       return redirect()
-        ->route('oficinas.index')
+        ->route('nomencladores.oficinas.index')
         ->with('success', 'Oficina actualizada correctamente.');
     } catch (\Exception $e) {
       return redirect()

@@ -1,5 +1,5 @@
 <template>
-  <AuthenticatedLayout>
+  <AppLayout :title="`Editar Usuario: ${user.name}`">
     <div class="py-6">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
@@ -241,23 +241,82 @@
               </h3>
               
               <div class="space-y-4">
-                <!-- Selector de oficinas -->
+                <!-- Búsqueda de oficinas -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Seleccionar Oficinas
+                    Buscar Oficinas
                   </label>
-                  <div class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-3">
-                    <label v-for="oficina in oficinas" :key="oficina.id" class="flex items-center">
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      v-model="searchTerm"
+                      type="text"
+                      placeholder="Buscar por nombre o código..."
+                      class="pl-10 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                    <button
+                      v-if="searchTerm"
+                      @click="searchTerm = ''"
+                      class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    >
+                      <XMarkIcon class="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Oficinas filtradas -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Oficinas Disponibles
+                  </label>
+                  <div class="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-3">
+                    <div v-if="filteredOficinas.length === 0" class="text-center py-4 text-sm text-gray-500">
+                      No se encontraron oficinas
+                    </div>
+                    <label 
+                      v-for="oficina in filteredOficinas" 
+                      :key="oficina.id" 
+                      class="flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
+                    >
                       <input
                         v-model="form.oficinas"
                         type="checkbox"
                         :value="oficina.id"
                         class="form-checkbox h-4 w-4 text-blue-600"
                       />
-                      <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                        {{ oficina.codigo_oficina }} - {{ oficina.nombre }}
+                      <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                        <span class="font-mono text-xs bg-gray-100 dark:bg-gray-600 px-1 py-0.5 rounded">
+                          {{ oficina.codigo_oficina }}
+                        </span>
+                        - {{ oficina.nombre }}
                       </span>
                     </label>
+                  </div>
+                </div>
+
+                <!-- Oficinas seleccionadas -->
+                <div v-if="form.oficinas.length > 0">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Oficinas Seleccionadas ({{ form.oficinas.length }})
+                  </label>
+                  <div class="space-y-2">
+                    <div 
+                      v-for="oficinaId in form.oficinas" 
+                      :key="oficinaId"
+                      class="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md"
+                    >
+                      <span class="text-sm text-gray-700 dark:text-gray-300">
+                        {{ getOfficinaName(oficinaId) }}
+                      </span>
+                      <button
+                        @click="removeOficina(oficinaId)"
+                        class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                      >
+                        <XMarkIcon class="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -335,14 +394,14 @@
         </form>
       </div>
     </div>
-  </AuthenticatedLayout>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import { ChevronRightIcon } from '@heroicons/vue/24/outline'
+import AppLayout from '@/Layouts/AppLayout.vue'
+import { ChevronRightIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   user: Object,
@@ -352,6 +411,7 @@ const props = defineProps({
 })
 
 const changePassword = ref(false)
+const searchTerm = ref('')
 
 const form = useForm({
   name: props.user.name,

@@ -75,7 +75,7 @@ class TipoNotaController extends Controller
       }
 
       return redirect()
-        ->route('tipos-nota.index')
+        ->route('nomencladores.tipos-nota.index')
         ->with('message', 'Tipo de nota de pedido creado correctamente.')
         ->with('type', 'success');
 
@@ -152,7 +152,7 @@ class TipoNotaController extends Controller
       }
 
       return redirect()
-        ->route('tipos-nota.index')
+        ->route('nomencladores.tipos-nota.index')
         ->with('message', 'Tipo de nota de pedido actualizado correctamente.')
         ->with('type', 'success');
 
@@ -182,7 +182,7 @@ class TipoNotaController extends Controller
       $tipoNota->delete();
 
       return redirect()
-        ->route('tipos-nota.index')
+        ->route('nomencladores.tipos-nota.index')
         ->with('message', "Tipo de nota '{$descripcion}' eliminado correctamente.")
         ->with('type', 'success');
 

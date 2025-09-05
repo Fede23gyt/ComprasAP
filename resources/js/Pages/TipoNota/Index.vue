@@ -135,7 +135,7 @@ const confirmDelete = async (item) => {
 
   if (result.isConfirmed) {
     useForm({})
-      .delete(`/tipos-nota/${item.id}`, {
+      .delete(`/nomencladores/tipos-nota/${item.id}`, {
         onSuccess: () => {
           Swal.fire({
             title: '¡Eliminado!',
@@ -186,7 +186,7 @@ const confirmExport = async (format) => {
 
     try {
       // Crear un enlace temporal para descargar
-      const downloadUrl = `/tipos-nota/export/${format}?search=${search.value}`;
+      const downloadUrl = `/nomencladores/tipos-nota/export/${format}?search=${search.value}`;
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = `tipos_nota_${new Date().toISOString().split('T')[0]}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
@@ -228,224 +228,394 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
 
 <template>
   <AppLayout title="Tipos de Nota de Pedido">
-    <!-- Header Section -->
-    <section class="bg-gray-100 dark:bg-gray-900 pt-4 pb-6">
-      <div class="max-w-4xl mx-auto px-4">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Tipos de Nota de Pedido</h1>
+    <!-- Page Content usando el diseño original -->
+    <div class="content">
+      <div class="page-title">
+        <h1 class="text-gray-900 dark:text-white">Tipos de Nota de Pedido</h1>
       </div>
-    </section>
 
-    <!-- Modal Component -->
-    <TipoNotaModal
-      v-if="showModal"
-      :item="modalItem"
-      :mode="modalMode"
-      @close="closeModal"
-      @saved="onModalSaved"
-    />
+      <!-- Modal Component -->
+      <TipoNotaModal
+        v-if="showModal"
+        :item="modalItem"
+        :mode="modalMode"
+        @close="closeModal"
+        @saved="onModalSaved"
+      />
 
-    <!-- Main Content -->
-    <main class="max-w-4xl mx-auto px-4 py-8">
-
-      <!-- Search and Create Button -->
-      <div class="flex items-center justify-between mb-6 gap-4">
-        <!-- Buscador -->
-        <div class="flex-1 max-w-md">
-          <label class="flex items-center space-x-2">
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Buscar:</span>
-            <input
-              v-model="search"
-              @input="$inertia.get(route('tipos-nota.index', { search: $event.target.value }))"
-              placeholder="Buscar tipo de nota..."
-              class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            />
-          </label>
+      <!-- Search Section with Button -->
+      <div class="search-section">
+        <div class="search-input">
+          <i class="fas fa-search text-gray-400"></i>
+          <input 
+            type="text" 
+            placeholder="Buscar tipo de nota..."
+            v-model="search"
+            @input="$inertia.get(route('nomencladores.tipos-nota.index', { search: $event.target.value }))"
+            class="search-field"
+          >
         </div>
+        <button 
+          class="btn btn-primary"
+          @click="openCreateModal"
+        >
+          <i class="fas fa-plus"></i> Nuevo Tipo
+        </button>
+      </div>
 
-        <!-- Botones de acción -->
-        <div class="flex items-center space-x-3">
-          <!-- Botones de exportación -->
-          <div class="flex items-center space-x-2">
-            <button
-              @click="confirmExport('pdf')"
-              class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
-              title="Exportar a PDF"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-              <span>PDF</span>
+      <!-- Table -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Listado de Tipos de Nota</h2>
+          <div style="display: flex; gap: 1rem;">
+            <button class="btn btn-outline" @click="confirmExport('pdf')">
+              <i class="fas fa-file-pdf"></i> Exportar PDF
             </button>
-
-            <button
-              @click="confirmExport('excel')"
-              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
-              title="Exportar a Excel"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-              <span>Excel</span>
+            <button class="btn btn-outline" @click="confirmExport('excel')">
+              <i class="fas fa-file-excel"></i> Exportar Excel
             </button>
           </div>
+        </div>
+        <div class="card-body">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                v-for="item in filteredPage" 
+                :key="item.id"
+              >
+                <td>{{ item.descripcion }}</td>
+                <td>
+                  <span 
+                    class="status"
+                    :class="{
+                      'status-approved': item.estado === 'Habilitado',
+                      'status-rejected': item.estado === 'No habilitado'
+                    }"
+                  >
+                    <i 
+                      class="fas"
+                      :class="{
+                        'fa-check': item.estado === 'Habilitado',
+                        'fa-times': item.estado === 'No habilitado'
+                      }"
+                    ></i>
+                    {{ item.estado }}
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button 
+                      class="btn btn-outline"
+                      @click="openEditModal(item)"
+                      title="Editar"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button 
+                      class="btn"
+                      :class="item.estado === 'Habilitado' ? 'btn-danger' : 'btn-success'"
+                      @click="confirmToggleEstado(item)"
+                      :title="item.estado === 'Habilitado' ? 'Deshabilitar' : 'Habilitar'"
+                    >
+                      <i 
+                        class="fas"
+                        :class="item.estado === 'Habilitado' ? 'fa-times' : 'fa-check'"
+                      ></i>
+                    </button>
+                    <button 
+                      class="btn btn-danger"
+                      @click="confirmDelete(item)"
+                      title="Eliminar"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
 
-          <!-- Separador -->
-          <div class="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
-
-          <!-- Botón Nuevo -->
-          <button
-            @click="openCreateModal"
-            class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg flex items-center space-x-2"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            <span>Nuevo Tipo</span>
-          </button>
+              <!-- Empty state -->
+              <tr v-if="filteredPage.length === 0">
+                <td colspan="3" style="text-align: center; padding: 2rem;">
+                  <div style="color: #64748b;">
+                    <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                    <h3 style="margin-bottom: 0.5rem;">No hay tipos de nota</h3>
+                    <p style="margin-bottom: 1rem;">
+                      {{ search ? 'No se encontraron resultados para tu búsqueda' : 'Comienza creando un nuevo tipo de nota' }}
+                    </p>
+                    <button 
+                      v-if="!search"
+                      class="btn btn-primary"
+                      @click="openCreateModal"
+                    >
+                      <i class="fas fa-plus"></i> Crear primer tipo
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Tabla -->
-      <div class="overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-        <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead class="bg-gray-50 dark:bg-gray-700/50">
-          <tr>
-            <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-              Descripción
-            </th>
-            <th class="px-6 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-              Estado
-            </th>
-            <th class="px-6 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-              Acciones
-            </th>
-          </tr>
-          </thead>
-          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          <tr
-            v-for="item in filteredPage"
-            :key="item.id"
-            class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors duration-150"
-          >
-            <!-- Descripción -->
-            <td class="px-6 py-3 text-sm text-gray-900 dark:text-gray-100">
-              <div class="font-medium">{{ item.descripcion }}</div>
-            </td>
-
-            <!-- Estado con Toggle -->
-            <td class="px-6 py-3 text-center">
-              <label class="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  :checked="isHabilitado(item.estado)"
-                  class="sr-only peer"
-                  @change="confirmToggleEstado(item)"
-                />
-                <div
-                  class="relative w-12 h-6 rounded-full transition-colors duration-200 ease-in-out after:content-[''] after:absolute after:top-0.5 after:w-5 after:h-5 after:bg-white after:border after:border-gray-300 after:rounded-full after:transition-all after:duration-200 after:ease-in-out"
-                  :class="[
-                      isHabilitado(item.estado)
-                        ? 'bg-green-500'
-                        : 'bg-red-500',
-                      isHabilitado(item.estado)
-                        ? 'after:left-[1.5rem]'
-                        : 'after:left-0.5'
-                    ]"
-                ></div>
-              </label>
-              <div class="mt-1 text-xs font-medium" :class="isHabilitado(item.estado) ? 'text-green-600' : 'text-red-600'">
-                {{ isHabilitado(item.estado) ? 'Habilitado' : 'No habilitado' }}
-              </div>
-            </td>
-
-            <!-- Acciones -->
-            <td class="px-6 py-3 text-center">
-              <div class="flex items-center justify-center space-x-3">
-                <!-- Editar -->
-                <button
-                  @click="openEditModal(item)"
-                  class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-150"
-                  title="Editar"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                </button>
-
-                <!-- Eliminar -->
-                <button
-                  @click="confirmDelete(item)"
-                  class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors duration-150"
-                  title="Eliminar"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Empty state -->
-          <tr v-if="filteredPage.length === 0">
-            <td colspan="3" class="px-6 py-9 text-center">
-              <div class="text-gray-500 dark:text-gray-400">
-                <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium">No hay tipos de nota</h3>
-                <p class="mt-1 text-sm">{{ search ? 'No se encontraron resultados para tu búsqueda' : 'Comienza creando un nuevo tipo de nota de pedido' }}</p>
-                <div class="mt-6" v-if="!search">
-                  <button
-                    @click="openCreateModal"
-                    class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                  >
-                    ➕ Crear primer tipo
-                  </button>
-                </div>
-              </div>
-            </td>
-          </tr>
-          </tbody>
-        </table>
+      <!-- Info adicional -->
+      <div style="margin-top: 1rem; font-size: 0.875rem; color: #64748b;">
+        Mostrando {{ filteredPage.length }} de {{ items.total }} tipos de nota
       </div>
-
-      <!-- Paginación moderna -->
-      <div class="mt-6 flex items-center justify-between text-sm">
-        <!-- Info de página -->
-        <p class="text-gray-600 dark:text-gray-300">
-          Mostrando
-          <span class="font-medium">{{ items.from }} - {{ items.to }}</span>
-          de
-          <span class="font-medium">{{ items.total }}</span>
-          tipos de nota
-        </p>
-
-        <!-- Links de paginación -->
-        <nav class="flex space-x-1">
-          <Link
-            v-for="(link, index) in items.links"
-            :key="index"
-            :href="link.url ?? '#'"
-            :class="[
-              'px-3 py-2 rounded-md border text-sm font-medium transition-colors duration-150',
-              link.active
-                ? 'bg-orange-600 text-white border-orange-600'
-                : link.url
-                  ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border-gray-200 dark:border-gray-700'
-            ]"
-            v-html="link.label"
-          />
-        </nav>
-      </div>
-
-      <!-- Resumen de filtros (si hay búsqueda) -->
-      <div v-if="search" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-          Filtrado por: "{{ search }}"
-        </span>
-      </div>
-    </main>
+    </div>
   </AppLayout>
 </template>
+
+<style scoped>
+/* Estilos específicos para esta página, usando el diseño original */
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --secondary: #64748b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --light: #f8fafc;
+  --dark: #1e293b;
+  --gray: #94a3b8;
+}
+
+/* Content */
+.content {
+  padding: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.dark .card {
+  background: #374151;
+}
+
+.card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dark .card-header {
+  border-bottom-color: #4b5563;
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #1f2937;
+}
+
+.dark .card-title {
+  color: #f3f4f6;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+/* Search Section */
+.search-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.search-input {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  flex: 1;
+  max-width: 400px;
+}
+
+.dark .search-input {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+.search-field {
+  border: none;
+  background: transparent;
+  outline: none;
+  margin-left: 0.5rem;
+  width: 100%;
+  color: #1f2937;
+}
+
+.dark .search-field {
+  color: #f3f4f6;
+}
+
+.search-field::placeholder {
+  color: #9ca3af;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: white;
+}
+
+.btn-success:hover {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid var(--gray);
+  color: var(--dark);
+}
+
+.btn-outline:hover {
+  background-color: var(--light);
+}
+
+/* Tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table th {
+  font-weight: 500;
+  color: var(--secondary);
+  background-color: #f8fafc;
+}
+
+.dark .table th {
+  background-color: #4b5563;
+  color: #d1d5db;
+  border-bottom-color: #6b7280;
+}
+
+.dark .table td {
+  color: #f3f4f6;
+  border-bottom-color: #4b5563;
+}
+
+.table tr:hover {
+  background-color: #f8fafc;
+}
+
+.dark .table tr:hover {
+  background-color: #4b5563;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-rejected {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .page-title {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 1rem;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .search-input {
+    max-width: 100%;
+  }
+  
+  .search-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+}
+</style>

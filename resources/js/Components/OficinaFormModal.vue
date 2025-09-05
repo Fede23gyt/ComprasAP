@@ -3,6 +3,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch, nextTick } from 'vue';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
   oficina: {
@@ -34,7 +35,7 @@ watch(() => form.abreviacion, () => form.clearErrors('abreviacion'));
 
 const submit = () => {
   if (isEditing.value) {
-    form.put(`/oficinas/${props.oficina.id}`, {
+    form.put(`/nomencladores/oficinas/${props.oficina.id}`, {
       onSuccess: () => {
         emit('saved');
         Swal.fire({
@@ -57,7 +58,7 @@ const submit = () => {
       }
     });
   } else {
-    form.post('/oficinas', {
+    form.post('/nomencladores/oficinas', {
       onSuccess: () => {
         emit('saved');
         Swal.fire({

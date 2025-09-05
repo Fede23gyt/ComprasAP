@@ -5,12 +5,6 @@ import OficinaFormModal from '@/Components/OficinaFormModal.vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import Swal from 'sweetalert2';
-import {
-  PlusIcon,
-  MagnifyingGlassIcon,
-  PencilIcon,
-  BuildingOfficeIcon
-} from '@heroicons/vue/24/outline';
 
 const props = defineProps({
   oficinas: Array,
@@ -92,7 +86,7 @@ const confirmToggle = (oficina) => {
     backdrop: true
   }).then((result) => {
     if (result.isConfirmed) {
-      useForm({}).patch(`/oficinas/${oficina.id}/toggle`, {
+      useForm({}).patch(`/nomencladores/oficinas/${oficina.id}/toggle`, {
         onSuccess: () => {
           Swal.fire({
             title: '¡Éxito!',
@@ -142,215 +136,190 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <AppLayout>
-    <!-- Header -->
-    <section class="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 py-8">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center space-x-3">
-          <div class="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-xl">
-            <BuildingOfficeIcon class="w-8 h-8 text-orange-600 dark:text-orange-400" />
-          </div>
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-              Gestión de Oficinas
-            </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">
-              Administra las oficinas de tu organización
-            </p>
-          </div>
+  <AppLayout title="Oficinas">
+    <!-- Page Content -->
+    <div class="content">
+      <div class="page-title">
+        <h1 class="text-gray-900 dark:text-white">Oficinas</h1>
+      </div>
+
+
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">{{ filteredTree.length }}</div>
+          <div class="stat-label">Total Oficinas</div>
+        </div>
+        <div class="stat-card stat-success">
+          <div class="stat-number">{{ filteredTree.filter(o => o.estado === 'Habilitada').length }}</div>
+          <div class="stat-label">Habilitadas</div>
+        </div>
+        <div class="stat-card stat-danger">
+          <div class="stat-number">{{ filteredTree.filter(o => o.estado === 'No habilitada').length }}</div>
+          <div class="stat-label">No habilitadas</div>
         </div>
       </div>
-    </section>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Controles superiores -->
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <!-- Buscador -->
-          <div class="relative flex-1 max-w-md">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              ref="searchInput"
-              v-model="search"
-              type="text"
-              placeholder="Buscar oficinas... (Ctrl+K)"
-              class="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all"
-            />
-            <button
-              v-if="search"
-              @click="clearSearch"
-              class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
-
-          <!-- Botón nueva oficina -->
-          <button
-            @click="openModal()"
-            class="inline-flex items-center px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+      <!-- Search Section with Button -->
+      <div class="search-section">
+        <div class="search-input">
+          <i class="fas fa-search text-gray-400"></i>
+          <input
+            ref="searchInput"
+            v-model="search"
+            type="text"
+            placeholder="Buscar oficinas..."
+            class="search-field"
           >
-            <PlusIcon class="w-5 h-5 mr-2" />
-            Nueva Oficina
+          <button
+            v-if="search"
+            @click="clearSearch"
+            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <i class="fas fa-times"></i>
           </button>
         </div>
-
-        <!-- Stats -->
-        <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-xl">
-            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {{ filteredTree.length }}
-            </div>
-            <div class="text-sm text-blue-600/80 dark:text-blue-400/80">
-              Total Oficinas
-            </div>
-          </div>
-          <div class="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-xl">
-            <div class="text-2xl font-bold text-green-600 dark:text-green-400">
-              {{ filteredTree.filter(o => o.estado === 'Habilitada').length }}
-            </div>
-            <div class="text-sm text-green-600/80 dark:text-green-400/80">
-              Habilitadas
-            </div>
-          </div>
-          <div class="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-4 rounded-xl">
-            <div class="text-2xl font-bold text-red-600 dark:text-red-400">
-              {{ filteredTree.filter(o => o.estado === 'No habilitada').length }}
-            </div>
-            <div class="text-sm text-red-600/80 dark:text-red-400/80">
-              No habilitadas
-            </div>
-          </div>
-        </div>
+        <button
+          class="btn btn-primary"
+          @click="openModal()"
+        >
+          <i class="fas fa-plus"></i> Nueva Oficina
+        </button>
       </div>
 
-      <!-- Tabla -->
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700/50">
-            <tr>
-              <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                Código
-              </th>
-              <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                Nombre / Jerarquía
-              </th>
-              <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                Abreviación
-              </th>
-              <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                Estado
-              </th>
-              <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
+      <!-- Table -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Listado de Oficinas</h2>
+        </div>
+        <div class="card-body">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nombre / Jerarquía</th>
+                <th>Abreviación</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
             </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            <tr
-              v-for="oficina in filteredTree"
-              :key="oficina.id"
-              class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
-            >
-              <!-- Código -->
-              <td class="px-6 py-4 whitespace-nowrap">
+            <tbody>
+              <tr
+                v-for="oficina in filteredTree"
+                :key="oficina.id"
+              >
+                <!-- Código -->
+                <td>
                   <span class="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md text-gray-900 dark:text-gray-100">
                     {{ oficina.codigo_oficina }}
                   </span>
-              </td>
+                </td>
 
-              <!-- Nombre con jerarquía -->
-              <td class="px-6 py-4">
-                <div class="flex items-center">
-                  <!-- Indentación visual -->
-                  <div :style="{ width: oficina.level * 24 + 'px' }" class="flex-shrink-0">
-                    <div
-                      v-if="oficina.level > 0"
-                      class="flex items-center h-full"
-                    >
-                      <!-- Línea de conexión -->
-                      <div class="w-full border-l-2 border-gray-300 dark:border-gray-600 border-dashed h-4"></div>
-                      <div class="w-4 border-t-2 border-gray-300 dark:border-gray-600 border-dashed"></div>
+                <!-- Nombre con jerarquía -->
+                <td>
+                  <div class="flex items-center">
+                    <!-- Indentación visual -->
+                    <div :style="{ width: oficina.level * 24 + 'px' }" class="flex-shrink-0">
+                      <div
+                        v-if="oficina.level > 0"
+                        class="flex items-center h-full"
+                      >
+                        <!-- Línea de conexión -->
+                        <div class="w-full border-l-2 border-gray-300 dark:border-gray-600 border-dashed h-4"></div>
+                        <div class="w-4 border-t-2 border-gray-300 dark:border-gray-600 border-dashed"></div>
+                      </div>
+                    </div>
+
+                    <!-- Contenido -->
+                    <div class="ml-2">
+                      <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                        {{ oficina.nombre }}
+                      </div>
+                      <div v-if="oficina.level > 0" class="text-xs text-gray-500 dark:text-gray-400">
+                        Nivel {{ oficina.level + 1 }}
+                      </div>
                     </div>
                   </div>
+                </td>
 
-                  <!-- Contenido -->
-                  <div class="ml-2">
-                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                      {{ oficina.nombre }}
-                    </div>
-                    <div v-if="oficina.level > 0" class="text-xs text-gray-500 dark:text-gray-400">
-                      Nivel {{ oficina.level + 1 }}
-                    </div>
-                  </div>
-                </div>
-              </td>
+                <!-- Abreviación -->
+                <td>{{ oficina.abreviacion }}</td>
 
-              <!-- Abreviación -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                    {{ oficina.abreviacion }}
+                <!-- Estado -->
+                <td>
+                  <span
+                    class="status"
+                    :class="{
+                      'status-approved': oficina.estado === 'Habilitada',
+                      'status-rejected': oficina.estado === 'No habilitada'
+                    }"
+                  >
+                    <i
+                      class="fas"
+                      :class="{
+                        'fa-check': oficina.estado === 'Habilitada',
+                        'fa-times': oficina.estado === 'No habilitada'
+                      }"
+                    ></i>
+                    {{ oficina.estado }}
                   </span>
-              </td>
+                </td>
 
-              <!-- Estado -->
-              <td class="px-6 py-4 whitespace-nowrap text-center">
-                <label class="inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    :checked="oficina.estado === 'Habilitada'"
-                    class="sr-only peer"
-                    @change="confirmToggle(oficina)"
-                  />
-                  <div class="relative w-12 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:border after:border-gray-300 transition-all"
-                       :class="oficina.estado === 'Habilitada' ? 'bg-green-500 peer-checked:bg-green-600' : 'bg-red-400'"
-                  ></div>
-                </label>
-              </td>
+                <!-- Acciones -->
+                <td>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button
+                      class="btn btn-outline"
+                      @click="openModal(oficina)"
+                      title="Editar"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      class="btn"
+                      :class="oficina.estado === 'Habilitada' ? 'btn-danger' : 'btn-success'"
+                      @click="confirmToggle(oficina)"
+                      :title="oficina.estado === 'Habilitada' ? 'Deshabilitar' : 'Habilitar'"
+                    >
+                      <i
+                        class="fas"
+                        :class="oficina.estado === 'Habilitada' ? 'fa-times' : 'fa-check'"
+                      ></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
 
-              <!-- Acciones -->
-              <td class="px-6 py-4 whitespace-nowrap text-center">
-                <button
-                  @click="openModal(oficina)"
-                  class="inline-flex items-center p-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-all"
-                  title="Editar oficina"
-                >
-                  <PencilIcon class="w-4 h-4" />
-                </button>
-              </td>
-            </tr>
+              <!-- Empty state -->
+              <tr v-if="filteredTree.length === 0">
+                <td colspan="5" style="text-align: center; padding: 2rem;">
+                  <div style="color: #64748b;">
+                    <i class="fas fa-building" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                    <h3 style="margin-bottom: 0.5rem;">No hay oficinas</h3>
+                    <p style="margin-bottom: 1rem;">
+                      {{ search ? 'No se encontraron resultados para tu búsqueda' : 'Comienza creando una nueva oficina' }}
+                    </p>
+                    <button
+                      v-if="!search"
+                      class="btn btn-primary"
+                      @click="openModal()"
+                    >
+                      <i class="fas fa-plus"></i> Crear primera oficina
+                    </button>
+                  </div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
-
-        <!-- Estado vacío -->
-        <div
-          v-if="filteredTree.length === 0"
-          class="text-center py-12"
-        >
-          <BuildingOfficeIcon class="mx-auto h-12 w-12 text-gray-400" />
-          <h3 class="mt-4 text-sm font-semibold text-gray-900 dark:text-white">
-            {{ search ? 'No se encontraron oficinas' : 'No hay oficinas registradas' }}
-          </h3>
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {{ search ? 'Intenta con otros términos de búsqueda' : 'Comienza creando una nueva oficina' }}
-          </p>
-          <button
-            v-if="!search"
-            @click="openModal()"
-            class="mt-4 inline-flex items-center px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors"
-          >
-            <PlusIcon class="w-4 h-4 mr-2" />
-            Nueva Oficina
-          </button>
-        </div>
       </div>
-    </main>
+
+      <!-- Info adicional -->
+      <div style="margin-top: 1rem; font-size: 0.875rem; color: #64748b;">
+        Mostrando {{ filteredTree.length }} oficinas
+      </div>
+    </div>
 
     <!-- Modal -->
     <OficinaFormModal
@@ -361,3 +330,323 @@ onUnmounted(() => {
     />
   </AppLayout>
 </template>
+
+<style scoped>
+/* Estilos específicos para esta página, usando el diseño original */
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --secondary: #64748b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --light: #f8fafc;
+  --dark: #1e293b;
+  --gray: #94a3b8;
+}
+
+/* Content */
+.content {
+  padding: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.dark .card {
+  background: #374151;
+}
+
+.card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dark .card-header {
+  border-bottom-color: #4b5563;
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #1f2937;
+}
+
+.dark .card-title {
+  color: #f3f4f6;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+/* Search Section */
+.search-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.search-input {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  flex: 1;
+  max-width: 400px;
+  position: relative;
+}
+
+.dark .search-input {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+.search-field {
+  border: none;
+  background: transparent;
+  outline: none;
+  margin-left: 0.5rem;
+  width: 100%;
+  color: #1f2937;
+}
+
+.dark .search-field {
+  color: #f3f4f6;
+}
+
+.search-field::placeholder {
+  color: #9ca3af;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #2563eb;
+}
+
+.dark .stat-card {
+  background: #374151;
+}
+
+.stat-card.stat-success {
+  border-left-color: #10b981;
+}
+
+.stat-card.stat-danger {
+  border-left-color: #ef4444;
+}
+
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.dark .stat-number {
+  color: #f3f4f6;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.dark .stat-label {
+  color: #9ca3af;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: white;
+}
+
+.btn-success:hover {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid var(--gray);
+  color: var(--dark);
+}
+
+.btn-outline:hover {
+  background-color: var(--light);
+}
+
+.dark .btn-outline {
+  color: #f3f4f6;
+  border-color: #6b7280;
+}
+
+.dark .btn-outline:hover {
+  background-color: #4b5563;
+}
+
+/* Tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table th {
+  font-weight: 500;
+  color: var(--secondary);
+  background-color: #f8fafc;
+}
+
+.dark .table th {
+  background-color: #4b5563;
+  color: #d1d5db;
+  border-bottom-color: #6b7280;
+}
+
+.dark .table td {
+  color: #f3f4f6;
+  border-bottom-color: #4b5563;
+}
+
+.table tr:hover {
+  background-color: #f8fafc;
+}
+
+.dark .table tr:hover {
+  background-color: #4b5563;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-rejected {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.dark .status-approved {
+  background-color: #064e3b;
+  color: #a7f3d0;
+}
+
+.dark .status-rejected {
+  background-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .page-title {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 1rem;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .search-input {
+    max-width: 100%;
+  }
+
+  .search-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

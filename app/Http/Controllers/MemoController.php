@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Memo;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MemoController extends Controller
 {
@@ -22,8 +23,16 @@ class MemoController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate(['descripcion' => 'required|unique:memos']);
-        Memo::create($request->all());
+        $request->validate([
+            'descripcion' => 'required|unique:memos',
+            'estado' => 'nullable|in:Habilitado,No habilitado'
+        ]);
+        
+        Memo::create([
+            'descripcion' => $request->descripcion,
+            'estado' => $request->estado ?? 'Habilitado'
+        ]);
+        
         return redirect()->route('memo.index');
     }
 
@@ -32,7 +41,9 @@ class MemoController extends Controller
      */
     public function show(Memo $memo)
     {
-        //
+        return inertia('Memo/Show', [
+            'memo' => $memo
+        ]);
     }
 
     /**
@@ -40,7 +51,17 @@ class MemoController extends Controller
      */
     public function update(Request $request, Memo $memo)
     {
-        //
+        $request->validate([
+            'descripcion' => ['required', Rule::unique('memos')->ignore($memo->id)],
+            'estado' => 'nullable|in:Habilitado,No habilitado'
+        ]);
+        
+        $memo->update([
+            'descripcion' => $request->descripcion,
+            'estado' => $request->estado ?? 'Habilitado'
+        ]);
+        
+        return redirect()->route('memo.index');
     }
 
     /**
@@ -48,6 +69,7 @@ class MemoController extends Controller
      */
     public function destroy(Memo $memo)
     {
-        //
+        $memo->delete();
+        return redirect()->route('memo.index');
     }
 }

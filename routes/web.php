@@ -7,6 +7,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\OficinaController;
 use App\Http\Controllers\TipoNotaController;
 use App\Http\Controllers\TipoCompraController;
+use App\Http\Controllers\MemoController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotaPedidoController;
@@ -86,13 +87,15 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::resource('oficinas', OficinaController::class);
     Route::patch('oficinas/{oficina}/toggle', [OficinaController::class, 'toggle'])->name('oficinas.toggle');
 
-    Route::resource('tipos-nota', TipoNotaController::class);
+    Route::resource('tipos-nota', TipoNotaController::class)->parameters(['tipos-nota' => 'tipoNota']);
     Route::patch('tipos-nota/{tipoNota}/toggle', [TipoNotaController::class, 'toggleEstado'])->name('tipos-nota.toggle');
     Route::get('tipos-nota/export/{format}', [TipoNotaController::class, 'export'])->name('tipos-nota.export');
 
-    Route::resource('tipos-compra', TipoCompraController::class);
+    Route::resource('tipos-compra', TipoCompraController::class)->parameters(['tipos-compra' => 'tipoCompra']);
     Route::patch('tipos-compra/{tipoCompra}/toggle', [TipoCompraController::class, 'toggleEstado'])->name('tipos-compra.toggle');
     Route::get('tipos-compra/export/{format}', [TipoCompraController::class, 'export'])->name('tipos-compra.export');
+
+    Route::resource('memos', MemoController::class)->parameters(['memos' => 'memo']);
 
     // Nomenclador de insumos con funcionalidad completa
     Route::get('insumos', [\App\Http\Controllers\InsumoController::class, 'index'])->name('insumos.index');
@@ -187,6 +190,11 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+// Ruta raíz - Redirige al dashboard si está autenticado, sino al login
+Route::get('/', function () {
+    return auth()->check() ? redirect('/dashboard') : redirect('/login');
+});
 
 // Rutas para perfil de usuario - Todos los usuarios autenticados
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {

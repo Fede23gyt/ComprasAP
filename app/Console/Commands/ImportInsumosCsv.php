@@ -10,20 +10,20 @@ use Illuminate\Support\Str;
 class ImportInsumosCsv extends Command
 {
   protected $signature   = 'import:insumos';
-  protected $description = 'Importa / actualiza insumos desde archivo SDF con separador especial';
+  protected $description = 'Importa / actualiza insumos desde archivo CSV con separador ;';
 
   public function handle()
   {
-    $path = storage_path('app/InsumosExport.sdf');
+    $path = storage_path('app/insumos.csv');
     if (!file_exists($path)) {
-      $this->error('Archivo InsumosExport.sdf no encontrado en storage/app');
+      $this->error('Archivo insumos.csv no encontrado en storage/app');
       return;
     }
 
     $handle = fopen($path, 'r');
     // Convertir de Windows-1252 a UTF-8 para manejar caracteres especiales
     stream_filter_append($handle, 'convert.iconv.WINDOWS-1252/UTF-8');
-    
+
     $map = []; // [codigo => id]
     $contador = 0;
     $actualizados = 0;
@@ -31,40 +31,39 @@ class ImportInsumosCsv extends Command
 
     $this->info('Iniciando importación de insumos...');
 
-    // Leer línea por línea y dividir por el separador ¿
+    // Leer línea por línea y dividir por el separador ;
     while (($linea = fgets($handle)) !== false) {
-        // Eliminar saltos de línea y dividir por el separador ¿
+        // Eliminar saltos de línea y dividir por el separador ;
         $linea = trim($linea);
-        
+
         // Debug: mostrar primera línea para verificar formato
         if ($contador === 0) {
             $this->info("Primera línea: " . substr($linea, 0, 100) . "...");
-            $this->info("Número de separadores: " . substr_count($linea, '¿'));
+            $this->info("Número de separadores: " . substr_count($linea, ';'));
         }
-        
-        $line = explode('¿', $linea);
-        
+
+        $line = explode(';', $linea);
+
         // Saltar líneas vacías
-        if (count($line) < 12) {
+        if (count($line) < 11) {
             if (!empty(trim($linea))) {
-                $this->warn("Línea con menos de 12 campos: " . substr($linea, 0, 50) . "...");
+                $this->warn("Línea con menos de 11 campos: " . substr($linea, 0, 50) . "...");
             }
             continue;
         }
 
-      // Mapeo de campos según la estructura del archivo SDF (12 campos)
-      $nivel = trim($line[0] ?? '');
-      $codigo = trim($line[1] ?? '');
-      $descripcion = trim($line[2] ?? '');
-      $clasificacion = trim($line[3] ?? '');
-      $presentacion = trim($line[4] ?? '');
-      $unidad_solicitud = trim($line[5] ?? '');
-      $precio_insumo = $this->parsePrecio(trim($line[6] ?? '0.00'));
+      // Mapeo de campos según la estructura del archivo CSV (11 campos, sin nivel)
+      $codigo = trim($line[0] ?? '');
+      $descripcion = trim($line[1] ?? '');
+      $clasificacion = trim($line[2] ?? '');
+      $presentacion = trim($line[3] ?? '');
+      $unidad_solicitud = trim($line[4] ?? '');
+      $precio_insumo = $this->parsePrecio(trim($line[5] ?? '0.00'));
       $inventariable = $this->parseBoolean(trim($line[7] ?? 'No'));
       $registrable = $this->parseBoolean(trim($line[8] ?? 'No'));
       $rend_tribunal = $this->parseBoolean(trim($line[9] ?? 'No'));
-      $precio_testigo = $this->parseBoolean(trim($line[10] ?? 'No'));
-      $tipo = trim($line[11] ?? '');
+      $precio_testigo = $this->parseBoolean(trim($line[6] ?? 'No'));
+      $tipo = trim($line[10] ?? '');
       $conversion = 0.00; // Campo no presente en el archivo, valor por defecto
 
       // Validar campos requeridos
@@ -146,7 +145,7 @@ class ImportInsumosCsv extends Command
     // Remover puntos de miles y convertir coma decimal a punto
     $precio = str_replace('.', '', $precio);
     $precio = str_replace(',', '.', $precio);
-    
+
     return floatval($precio);
   }
 

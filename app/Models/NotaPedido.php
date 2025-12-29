@@ -34,6 +34,11 @@ class NotaPedido extends Model
         'ejercicio_nota' => 'integer'
     ];
 
+    protected $attributes = [
+        'total_nota' => 0,
+        'estado' => 0
+    ];
+
     // Estados
     const ESTADO_ABIERTA = 0;
     const ESTADO_CONFIRMADA = 1;
@@ -207,5 +212,62 @@ class NotaPedido extends Model
             'fecha_confirmacion' => null,
             'confirmado_por' => null
         ]);
+    }
+
+    /**
+     * Verificar si tiene insumos disponibles para presupuestar
+     */
+    public function tieneInsumosDisponibles(): bool
+    {
+        return $this->detalles()->sinPresupuestar()->exists();
+    }
+
+    /**
+     * Obtener insumos disponibles para presupuestar
+     */
+    public function insumosDisponibles()
+    {
+        return $this->detalles()->sinPresupuestar()->with('insumo');
+    }
+
+    /**
+     * Obtener cantidad de insumos sin presupuestar
+     */
+    public function cantidadInsumosDisponibles(): int
+    {
+        return $this->detalles()->sinPresupuestar()->count();
+    }
+
+    /**
+     * Marcar insumos como presupuestados
+     */
+    public function marcarInsumosComoPresupuestados(array $detalleIds)
+    {
+        $this->detalles()->whereIn('id', $detalleIds)->update(['presupuestado' => true]);
+    }
+
+    /**
+     * Liberar insumos presupuestados (marcar como no presupuestados)
+     */
+    public function liberarInsumos(array $detalleIds)
+    {
+        $this->detalles()->whereIn('id', $detalleIds)->update(['presupuestado' => false]);
+    }
+
+    /**
+     * Boot method para asegurar valores por defecto
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($notaPedido) {
+            if (is_null($notaPedido->total_nota)) {
+                $notaPedido->total_nota = 0;
+            }
+            if (is_null($notaPedido->estado)) {
+                $notaPedido->estado = self::ESTADO_ABIERTA;
+            }
+        });
     }
 }

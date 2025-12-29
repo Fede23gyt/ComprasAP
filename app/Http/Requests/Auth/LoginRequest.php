@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Services\ActivityLoggerService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +43,9 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+            // Registrar intento de login fallido
+            ActivityLoggerService::logFailedLogin($this, $this->only('email', 'password'));
+            
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

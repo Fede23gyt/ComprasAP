@@ -438,6 +438,27 @@ const getOfficinaName = (oficinaId) => {
   return oficina ? `${oficina.codigo_oficina} - ${oficina.nombre}` : ''
 }
 
+// Filtrar oficinas según término de búsqueda
+const filteredOficinas = computed(() => {
+  if (!searchTerm.value) {
+    return props.oficinas
+  }
+  const term = searchTerm.value.toLowerCase()
+  return props.oficinas.filter(oficina => 
+    oficina.nombre.toLowerCase().includes(term) ||
+    oficina.codigo_oficina.toLowerCase().includes(term)
+  )
+})
+
+// Remover una oficina de la selección
+const removeOficina = (oficinaId) => {
+  form.oficinas = form.oficinas.filter(id => id !== oficinaId)
+  // Si la oficina removida era la principal, limpiar la selección
+  if (form.oficina_principal === oficinaId) {
+    form.oficina_principal = ''
+  }
+}
+
 const submit = () => {
   // If not changing password, remove password fields
   if (!changePassword.value) {
@@ -445,7 +466,7 @@ const submit = () => {
     form.password_confirmation = ''
   }
 
-  form.patch(route('admin.users.update', props.user.id), {
+  form.put(route('admin.users.update', props.user.id), {
     onSuccess: () => {
       // La redirección se maneja en el backend
     },

@@ -288,7 +288,7 @@ const totalEstimado = computed(() => {
 // Métodos
 const agregarRenglon = () => {
   form.detalles.push({
-    insumo_id: '',
+    insumo_id: null,
     insumo: null,
     cantidad: 1,
     precio: 0,
@@ -357,6 +357,17 @@ const guardarNota = () => {
     Swal.fire({
       title: 'Faltan insumos',
       text: 'Debe agregar al menos un insumo a la nota de pedido.',
+      icon: 'warning'
+    })
+    return
+  }
+
+  // Verificar que todos los detalles tengan insumo seleccionado
+  const detallesSinInsumo = form.detalles.findIndex(detalle => !detalle.insumo_id)
+  if (detallesSinInsumo !== -1) {
+    Swal.fire({
+      title: 'Insumo requerido',
+      text: `Debe seleccionar un insumo para el renglón ${detallesSinInsumo + 1}.`,
       icon: 'warning'
     })
     return

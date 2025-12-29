@@ -1,5 +1,5 @@
 <template>
-  <AuthenticatedLayout>
+  <AppLayout title="Gestión de Roles">
     <div class="py-6">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
@@ -206,7 +206,7 @@
                 <div class="flex items-center">
                   <KeyIcon class="h-4 w-4 text-gray-400 mr-1" />
                   <span class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ (role.permissions || []).length }} permiso{{ (role.permissions || []).length !== 1 ? 's' : '' }}
+                    {{ getPermissionsCount(role.permissions) }} permiso{{ getPermissionsCount(role.permissions) !== 1 ? 's' : '' }}
                   </span>
                 </div>
               </div>
@@ -315,13 +315,13 @@
         </div>
       </div>
     </div>
-  </AuthenticatedLayout>
+  </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { useConfirm } from '@/Composables/useConfirm'
 import { 
   UserGroupIcon,
@@ -387,6 +387,21 @@ const getRoleIconClasses = (roleName) => {
 
 const isSystemRole = (roleName) => {
   return ['administrador', 'secretario', 'director', 'operador', 'invitado'].includes(roleName)
+}
+
+// Contar permisos correctamente (puede ser string JSON o array)
+const getPermissionsCount = (permissions) => {
+  if (!permissions) return 0
+  if (Array.isArray(permissions)) return permissions.length
+  if (typeof permissions === 'string') {
+    try {
+      const parsed = JSON.parse(permissions)
+      return Array.isArray(parsed) ? parsed.length : 0
+    } catch {
+      return 0
+    }
+  }
+  return 0
 }
 
 const toggleRoleStatus = async (role) => {

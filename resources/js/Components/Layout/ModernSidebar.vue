@@ -180,7 +180,10 @@ import {
   TagIcon,
   BuildingOfficeIcon,
   // New icons
-  DocumentIcon
+  DocumentIcon,
+  DocumentDuplicateIcon,
+  ClipboardDocumentCheckIcon,
+  BanknotesIcon
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -210,7 +213,7 @@ const menuSections = computed(() => {
           submenu: [
             { name: 'Usuarios', route: route('admin.users.index'), icon: UserGroupIcon },
             { name: 'Roles & Permisos', route: route('admin.roles.index'), icon: ShieldCheckIcon },
-            { name: 'Reportes', route: route('admin.reports.index'), icon: PresentationChartLineIcon },
+            { name: 'Reportes Admin', route: route('admin.reports.index'), icon: PresentationChartLineIcon },
             { name: 'Oficinas', route: route('oficinas.index'), icon: BuildingOfficeIcon },
           ]
         }
@@ -227,10 +230,10 @@ const menuSections = computed(() => {
         name: 'Notas de Pedido',
         icon: ClipboardDocumentListIcon,
         submenu: [
-          { name: 'Mis Notas', route: '/notas-pedido', icon: DocumentTextIcon },
-          { name: 'Consultas', route: '/notas-pedido/consultas', icon: MagnifyingGlassIcon },
+          { name: 'Mis Notas', route: route('notas-pedido.mis-notas'), icon: DocumentTextIcon },
+          { name: 'Todas las Notas', route: route('notas-pedido.index'), icon: MagnifyingGlassIcon },
           ...(canAuthorize.value ? [
-            { name: 'Por Confirmar', route: '/notas-pedido/confirmar', icon: CheckCircleIcon, badge: 5 }
+            { name: 'Por Confirmar', route: route('notas-pedido.por-confirmar'), icon: CheckCircleIcon, badge: 5 }
           ] : [])
         ]
       }
@@ -245,37 +248,123 @@ const menuSections = computed(() => {
         {
           key: 'presupuestos',
           name: 'Presupuestos',
-          icon: CurrencyDollarIcon,
-          route: '/presupuestos'
+          icon: BanknotesIcon,
+          submenu: [
+            { name: 'Todos los Presupuestos', route: route('presupuestos.index'), icon: BanknotesIcon },
+            { name: 'Crear Presupuesto', route: route('presupuestos.create'), icon: BanknotesIcon }
+          ]
+        },
+        {
+          key: 'ofertas',
+          name: 'Ofertas',
+          icon: DocumentDuplicateIcon,
+          submenu: [
+            { name: 'Todas las Ofertas', route: route('ofertas.index'), icon: DocumentDuplicateIcon },
+            { name: 'Crear Oferta', route: route('ofertas.create'), icon: DocumentDuplicateIcon }
+          ]
         },
         {
           key: 'ordenes-compra',
           name: 'Órdenes de Compra',
           icon: ShoppingCartIcon,
-          route: '/ordenes-compra'
+          submenu: [
+            { name: 'Todas las Órdenes', route: route('ordenes-compra.index'), icon: ShoppingCartIcon },
+            { name: 'Crear Orden', route: route('ordenes-compra.create'), icon: ShoppingCartIcon }
+          ]
+        },
+        {
+          key: 'proveedores',
+          name: 'Proveedores',
+          icon: UserGroupIcon,
+          submenu: [
+            { name: 'Todos los Proveedores', route: route('nomencladores.proveedores.index'), icon: UserGroupIcon },
+            { name: 'Nuevo Proveedor', route: route('nomencladores.proveedores.create'), icon: UserGroupIcon }
+          ]
         }
       ]
     })
   }
-  
-  // Catalog Section
+
+  // Evaluation & Adjudication Section - For supervisors
+  if (canAccessManagement.value) {
+    sections.push({
+      title: 'Evaluación y Adjudicación',
+      items: [
+        {
+          key: 'recepcion-ofertas',
+          name: 'Recepción de Ofertas',
+          icon: DocumentDuplicateIcon,
+          submenu: [
+            { name: 'Ofertas Recibidas', route: route('ofertas.index'), icon: DocumentDuplicateIcon },
+            { name: 'Presupuestos Abiertos', route: route('presupuestos.index'), icon: BanknotesIcon },
+            { name: 'Nueva Oferta', route: route('ofertas.create'), icon: DocumentDuplicateIcon }
+          ]
+        },
+        {
+          key: 'evaluacion',
+          name: 'Evaluación de Ofertas',
+          icon: ClipboardDocumentCheckIcon,
+          submenu: [
+            { name: 'Evaluar Ofertas', route: route('presupuestos.index'), icon: ClipboardDocumentCheckIcon },
+            { name: 'Ofertas Evaluadas', route: route('ofertas.index'), icon: CheckCircleIcon },
+            { name: 'Comparar Precios', route: route('ofertas.index'), icon: MagnifyingGlassIcon }
+          ]
+        },
+        {
+          key: 'adjudicacion',
+          name: 'Adjudicación',
+          icon: CheckCircleIcon,
+          submenu: [
+            { name: 'Ofertas Seleccionadas', route: route('ofertas.index'), icon: CheckCircleIcon },
+            { name: 'Generar Órdenes', route: route('ordenes-compra.index'), icon: ShoppingCartIcon },
+            { name: 'Órdenes Generadas', route: route('ordenes-compra.index'), icon: ShoppingCartIcon }
+          ]
+        }
+      ]
+    })
+  }
+
+  // Reports Section - Accessible to all authenticated users
   sections.push({
-    title: 'Catálogo',
+    title: 'Reportes',
     items: [
       {
-        key: 'nomencladores',
-        name: 'Nomencladores',
-        icon: BookOpenIcon,
+        key: 'reportes',
+        name: 'Reportes',
+        icon: PresentationChartLineIcon,
         submenu: [
-          { name: 'Insumos', route: '/nomencladores/insumos', icon: TagIcon },
-          { name: 'Oficinas', route: '/nomencladores/oficinas', icon: BuildingOfficeIcon },
-          { name: 'Tipos de Nota', route: '/nomencladores/tipos-nota', icon: DocumentTextIcon },
-          { name: 'Tipos de Compra', route: '/nomencladores/tipos-compra', icon: ShoppingCartIcon },
-          { name: 'Memos', route: '/nomencladores/memos', icon: DocumentIcon }
+          { name: 'Dashboard', route: route('reportes.index'), icon: PresentationChartLineIcon },
+          ...(canAccessManagement.value ? [
+            { name: 'Notas por Oficina', route: route('reportes.notas-por-oficina'), icon: BuildingOfficeIcon },
+            { name: 'Proveedores y Ofertas', route: route('reportes.proveedores-ofertas'), icon: UserGroupIcon },
+            { name: 'Órdenes por Estado', route: route('reportes.ordenes-por-estado'), icon: ShoppingCartIcon },
+            { name: 'Insumos Solicitados', route: route('reportes.insumos-solicitados'), icon: TagIcon }
+          ] : [])
         ]
       }
     ]
   })
+  
+  // Catalog Section
+  if (canAccessManagement.value) {
+    sections.push({
+      title: 'Catálogo',
+      items: [
+        {
+          key: 'nomencladores',
+          name: 'Nomencladores',
+          icon: BookOpenIcon,
+          submenu: [
+            { name: 'Insumos', route: route('nomencladores.insumos.index'), icon: TagIcon },
+            { name: 'Proveedores', route: route('nomencladores.proveedores.index'), icon: UserGroupIcon },
+            { name: 'Tipos de Nota', route: route('nomencladores.tipos-nota.index'), icon: DocumentTextIcon },
+            { name: 'Tipos de Compra', route: route('nomencladores.tipos-compra.index'), icon: ShoppingCartIcon },
+            { name: 'Memos', route: route('nomencladores.memos.index'), icon: DocumentIcon }
+          ]
+        }
+      ]
+    })
+  }
   
   return sections
 })

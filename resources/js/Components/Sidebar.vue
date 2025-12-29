@@ -16,7 +16,8 @@ import {
   ClipboardDocumentListIcon,
   EyeIcon,
   CheckCircleIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  TruckIcon
 } from '@heroicons/vue/24/outline';
 
 const open = ref(false);
@@ -145,11 +146,26 @@ const menu = computed(() => [
     key: 'presupuestos',
     categoria: 'Presupuestos',
     icon: CurrencyDollarIcon,
-    route: '/presupuestos',
+    isSubmenu: true,
+    items: [
+      { label: 'Todos', route: '/presupuestos', icon: EyeIcon },
+      { label: 'Carga Presupuesto', route: '/presupuestos/create', icon: DocumentTextIcon },
+    ],
+  }] : []),
+  // Solo mostrar ofertas a roles superiores
+  ...(canAccessFullFeatures.value ? [{
+    key: 'ofertas',
+    categoria: 'Ofertas',
+    icon: DocumentTextIcon,
+    isSubmenu: true,
+    items: [
+      { label: 'Todas', route: '/presupuestos/ofertas', icon: EyeIcon },
+      { label: 'Carga de Ofertas', route: '/presupuestos/ofertas/create', icon: DocumentTextIcon },
+    ],
   }] : []),
   // Solo mostrar órdenes de compra a roles superiores
   ...(canAccessFullFeatures.value ? [{
-    key: 'orden-compra',
+    key: 'ordenes-compra',
     categoria: 'Órdenes de Compra',
     icon: ShoppingCartIcon,
     route: '/ordenes-compra',
@@ -167,6 +183,7 @@ const menu = computed(() => [
     isSubmenu: true,
     items: [
       { label: 'Insumos', route: '/nomencladores/insumos', icon: TagIcon, readonly: true },
+      { label: 'Proveedores', route: '/nomencladores/proveedores', icon: TruckIcon },
       { label: 'Tipos de Nota', route: '/nomencladores/tipos-nota', icon: DocumentTextIcon, readonly: true },
       { label: 'Tipos de Compra', route: '/nomencladores/tipos-compra', icon: ShoppingCartIcon, readonly: true },
       { label: 'Oficinas', route: '/nomencladores/oficinas', icon: BuildingOfficeIcon, readonly: true },

@@ -21,11 +21,13 @@ const emit = defineEmits(['close', 'saved']);
 const isEditing = computed(() => props.mode === 'edit');
 
 const form = useForm({
+  nombre: props.item?.nombre || '',
   descripcion: props.item?.descripcion || '',
   estado: props.item?.estado || 'Habilitado'
 });
 
 // Limpiar errores cuando se cambian los valores
+watch(() => form.nombre, () => form.clearErrors('nombre'));
 watch(() => form.descripcion, () => form.clearErrors('descripcion'));
 
 const submit = () => {
@@ -101,9 +103,9 @@ const closeModal = () => {
   }
 };
 
-// Auto-focus en el textarea
+// Auto-focus en el input nombre
 nextTick(() => {
-  document.querySelector('#descripcion')?.focus();
+  document.querySelector('#nombre')?.focus();
 });
 </script>
 
@@ -130,6 +132,25 @@ nextTick(() => {
 
       <!-- Form -->
       <form @submit.prevent="submit" class="p-6 space-y-5">
+        <!-- Nombre -->
+        <div class="space-y-1">
+          <label for="nombre" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Nombre <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="nombre"
+            type="text"
+            v-model="form.nombre"
+            placeholder="Ingrese el nombre del memo"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all"
+            :class="{ 'border-red-500 dark:border-red-500': form.errors.nombre }"
+            required
+          />
+          <p v-if="form.errors.nombre" class="text-sm text-red-600 dark:text-red-400">
+            {{ form.errors.nombre }}
+          </p>
+        </div>
+
         <!-- Descripción (multi-línea) -->
         <div class="space-y-1">
           <label for="descripcion" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">

@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class NotaPedidoController extends Controller
 {
@@ -31,11 +32,11 @@ class NotaPedidoController extends Controller
         $query = NotaPedido::with(['oficina', 'tipoNota', 'usuario'])
             ->whereHas('oficina', function ($q) use ($user) {
                 // Si es admin/supervisor puede ver todas
-                if ($user->role->name === 'administrador' || $user->role->name === 'supervisor') {
+                if ($user->isSupervisor()) {
                     return $q;
                 }
                 // Si no, solo las de sus oficinas
-                return $q->whereIn('id', $user->oficinas->pluck('id'));
+                return $q->whereIn('id', $user->oficinas()->pluck('id'));
             });
 
         // Aplicar filtros
@@ -71,9 +72,9 @@ class NotaPedidoController extends Controller
                       ->withQueryString();
 
         // Obtener oficinas para el filtro
-        $oficinas = $user->role->name === 'administrador' || $user->role->name === 'supervisor'
+        $oficinas = $user->isSupervisor()
             ? Oficina::habilitadas()->orderBy('nombre')->get()
-            : $user->oficinas;
+            : $user->oficinas()->get();
 
         return Inertia::render('NotasPedido/Index', [
             'title' => 'Notas de Pedido',
@@ -90,6 +91,60 @@ class NotaPedidoController extends Controller
     }
 
     /**
+     * Mostrar listado de mis notas de pedido (solo las del usuario actual)
+     */
+    public function misNotas(Request $request)
+    {
+        $search = $request->get('search', '');
+        $numero = $request->get('numero', '');
+        $estado = $request->get('estado', '');
+        
+        $user = Auth::user();
+        
+        // Query base - solo notas del usuario actual
+        $query = NotaPedido::with(['oficina', 'tipoNota', 'usuario'])
+            ->where('user_id', $user->id);
+        
+        // Solo aplicar filtro de oficinas si NO es admin/supervisor
+        if (!$user->isSupervisor()) {
+            $query->whereHas('oficina', function ($q) use ($user) {
+                return $q->whereIn('id', $user->oficinas()->pluck('id'));
+            });
+        }
+
+        // Aplicar filtros
+        if ($numero) {
+            $query->where('numero_nota', 'LIKE', "%{$numero}%");
+        }
+        
+        if ($estado !== '') {
+            $query->where('estado', $estado);
+        }
+        
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('descripcion', 'LIKE', "%{$search}%")
+                  ->orWhere('expediente', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $notas = $query->orderBy('ejercicio_nota', 'desc')
+                      ->orderBy('numero_nota', 'desc')
+                      ->paginate(15)
+                      ->withQueryString();
+
+        return Inertia::render('NotasPedido/MisNotas', [
+            'title' => 'Mis Notas de Pedido',
+            'notas' => $notas,
+            'filters' => [
+                'search' => $search,
+                'numero' => $numero,
+                'estado' => $estado
+            ]
+        ]);
+    }
+
+    /**
      * Mostrar formulario de creación
      */
     public function create()
@@ -100,9 +155,9 @@ class NotaPedidoController extends Controller
         $tiposNota = TipoNota::where('estado', 'Habilitado')->orderBy('descripcion')->get();
         
         // Obtener oficinas disponibles para el usuario
-        $oficinas = $user->role->name === 'administrador' || $user->role->name === 'supervisor'
+        $oficinas = $user->isSupervisor()
             ? Oficina::habilitadas()->orderBy('nombre')->get()
-            : $user->oficinas;
+            : $user->oficinas()->get();
 
         return Inertia::render('NotasPedido/Create', [
             'title' => 'Nueva Nota de Pedido',
@@ -126,6 +181,13 @@ class NotaPedidoController extends Controller
             'detalles.*.cantidad' => 'required|numeric|min:0.0001',
             'detalles.*.precio' => 'required|numeric|min:0',
             'detalles.*.comentario' => 'nullable|string|max:1000'
+        ], [
+            'detalles.*.insumo_id.required' => 'Debe seleccionar un insumo para cada renglón.',
+            'detalles.*.insumo_id.exists' => 'El insumo seleccionado no es válido.',
+            'detalles.*.cantidad.required' => 'La cantidad es obligatoria.',
+            'detalles.*.cantidad.min' => 'La cantidad debe ser mayor a 0.',
+            'detalles.*.precio.required' => 'El precio es obligatorio.',
+            'detalles.*.precio.min' => 'El precio debe ser mayor o igual a 0.'
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -141,7 +203,8 @@ class NotaPedidoController extends Controller
                 'tipo_nota_id' => $validated['tipo_nota_id'],
                 'descripcion' => $validated['descripcion'],
                 'user_id' => Auth::id(),
-                'estado' => NotaPedido::ESTADO_ABIERTA
+                'estado' => NotaPedido::ESTADO_ABIERTA,
+                'total_nota' => 0
             ]);
 
             // Crear los detalles
@@ -156,11 +219,80 @@ class NotaPedidoController extends Controller
                 ]);
             }
 
-            // El total se calcula automáticamente en el modelo
+            // Calcular el total después de crear los detalles
+            $nota->calcularTotal();
         });
 
         return redirect()->route('notas-pedido.index')
             ->with('success', 'Nota de pedido creada correctamente.');
+    }
+
+    /**
+     * Mostrar notas pendientes de confirmación
+     */
+    public function porConfirmar(Request $request)
+    {
+        $search = $request->get('search', '');
+        $numero = $request->get('numero', '');
+        $oficinaId = $request->get('oficina_id', '');
+        
+        $user = Auth::user();
+        
+        // Query base - solo notas abiertas de oficinas donde el usuario puede autorizar
+        $query = NotaPedido::with(['oficina', 'tipoNota', 'usuario'])
+            ->where('estado', NotaPedido::ESTADO_ABIERTA)
+            ->whereHas('oficina', function ($q) use ($user) {
+                // Si es admin/supervisor puede ver todas las oficinas
+                if ($user->isSupervisor()) {
+                    return $q;
+                }
+                // Si no, solo las oficinas donde puede autorizar
+                return $q->whereIn('id', $user->oficinasQueAutoriza()->pluck('id'));
+            });
+
+        // Aplicar filtros
+        if ($numero) {
+            $query->where('numero_nota', 'LIKE', "%{$numero}%");
+        }
+        
+        if ($oficinaId) {
+            $query->where('oficina_id', $oficinaId);
+        }
+        
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('descripcion', 'LIKE', "%{$search}%")
+                  ->orWhere('expediente', 'LIKE', "%{$search}%")
+                  ->orWhereHas('oficina', function ($subq) use ($search) {
+                      $subq->where('nombre', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('usuario', function ($subq) use ($search) {
+                      $subq->where('name', 'LIKE', "%{$search}%")
+                           ->orWhere('email', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        $notas = $query->orderBy('ejercicio_nota', 'desc')
+                      ->orderBy('numero_nota', 'desc')
+                      ->paginate(15)
+                      ->withQueryString();
+
+        // Obtener oficinas para el filtro
+        $oficinas = $user->isSupervisor()
+            ? Oficina::habilitadas()->orderBy('nombre')->get()
+            : $user->oficinasQueAutoriza()->get();
+
+        return Inertia::render('NotasPedido/PorConfirmar', [
+            'title' => 'Notas por Confirmar',
+            'notas' => $notas,
+            'oficinas' => $oficinas,
+            'filters' => [
+                'search' => $search,
+                'numero' => $numero,
+                'oficina_id' => $oficinaId
+            ]
+        ]);
     }
 
     /**
@@ -205,7 +337,7 @@ class NotaPedidoController extends Controller
         $tiposNota = TipoNota::where('estado', 'Habilitado')->orderBy('descripcion')->get();
         
         // Obtener oficinas disponibles para el usuario
-        $oficinas = $user->role->name === 'administrador' || $user->role->name === 'supervisor'
+        $oficinas = $user->isSupervisor()
             ? Oficina::habilitadas()->orderBy('nombre')->get()
             : $user->oficinas;
 
@@ -322,7 +454,7 @@ class NotaPedidoController extends Controller
     {
         $user = Auth::user();
         
-        if (!in_array($user->role->name, ['administrador', 'supervisor'])) {
+        if (!$user->isSupervisor()) {
             return redirect()->back()
                 ->with('error', 'No tiene permisos para reabrir notas.');
         }
@@ -343,18 +475,55 @@ class NotaPedidoController extends Controller
      */
     public function buscarInsumos(Request $request)
     {
-        $search = $request->get('search', '');
+        $search = strtoupper($request->get('search', ''));
         
         $insumos = Insumo::with('clasificacionEconomica')
             ->where('registrable', true)
             ->where(function ($query) use ($search) {
-                $query->where('codigo', 'LIKE', "%{$search}%")
-                      ->orWhere('descripcion', 'LIKE', "%{$search}%");
+                $query->whereRaw('UPPER(codigo) LIKE ?', ["%{$search}%"])
+                      ->orWhereRaw('UPPER(descripcion) LIKE ?', ["%{$search}%"]);
             })
             ->orderBy('descripcion')
             ->limit(20)
             ->get();
 
         return response()->json($insumos);
+    }
+
+    /**
+     * Generar PDF de la nota de pedido
+     */
+    public function pdf(NotaPedido $notaPedido)
+    {
+        // Cargar relaciones necesarias
+        $notaPedido->load([
+            'oficina',
+            'usuario',
+            'tipoNota',
+            'confirmadoPor',
+            'detalles.insumo.clasificacionEconomica'
+        ]);
+
+        // Verificar permisos (opcional - puede que quieras que todos puedan ver el PDF)
+        // if (!$this->tieneAccesoANota($notaPedido)) {
+        //     abort(403, 'No tienes permisos para ver esta nota de pedido.');
+        // }
+
+        // Preparar datos para la vista
+        $data = [
+            'nota' => $notaPedido,
+            'fecha_actual' => now()->format('d/m/Y H:i'),
+            'total_cantidad' => $notaPedido->detalles->sum('cantidad'),
+            'total_items' => $notaPedido->detalles->count()
+        ];
+
+        // Configurar PDF
+        $pdf = Pdf::loadView('pdf.nota-pedido', $data);
+        $pdf->setPaper('A4', 'portrait');
+        
+        // Nombre del archivo
+        $filename = "nota-pedido-{$notaPedido->numero_nota}-{$notaPedido->ejercicio_nota}.pdf";
+        
+        return $pdf->stream($filename);
     }
 }

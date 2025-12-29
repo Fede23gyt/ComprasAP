@@ -16,6 +16,7 @@ const search = ref('');
 // Buscador
 const filteredItems = computed(() =>
   props.items.filter(item =>
+    item.nombre.toLowerCase().includes(search.value.toLowerCase()) ||
     item.descripcion.toLowerCase().includes(search.value.toLowerCase())
   )
 );
@@ -135,7 +136,10 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Descripción
+                  ID
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Nombre
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Estado
@@ -151,11 +155,21 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
                 :key="item.id"
                 class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <td class="px-6 py-4 whitespace-pre-wrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ item.descripcion }}
+                <!-- ID -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ item.id }}
                   </div>
                 </td>
+                
+                <!-- Nombre -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900 dark:text-white">
+                    {{ item.nombre }}
+                  </div>
+                </td>
+                
+                <!-- Estado -->
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span 
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
@@ -166,8 +180,20 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
                     {{ item.estado }}
                   </span>
                 </td>
+                
+                <!-- Acciones -->
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center gap-2">
+                    <!-- Ver detalle -->
+                    <Link 
+                      :href="route('nomencladores.memos.show', item.id)"
+                      class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                      title="Ver detalle"
+                    >
+                      <i class="fas fa-eye"></i>
+                    </Link>
+                    
+                    <!-- Editar -->
                     <button 
                       class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                       @click="openEditModal(item)"
@@ -175,6 +201,8 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
                     >
                       <i class="fas fa-edit"></i>
                     </button>
+                    
+                    <!-- Eliminar -->
                     <button 
                       class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                       @click="confirmDelete(item)"
@@ -188,7 +216,7 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
 
               <!-- Empty state -->
               <tr v-if="filteredItems.length === 0">
-                <td colspan="3" class="px-6 py-12 text-center">
+                <td colspan="4" class="px-6 py-12 text-center">
                   <div class="text-gray-500 dark:text-gray-400">
                     <i class="fas fa-sticky-note text-4xl mb-4"></i>
                     <h3 class="text-lg font-medium mb-2">

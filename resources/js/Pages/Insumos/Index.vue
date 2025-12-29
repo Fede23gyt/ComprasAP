@@ -377,10 +377,10 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
               <div class="flex flex-wrap items-center justify-center gap-1">
                 <!-- Registrable -->
                 <span
-                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-gray-500 dark:text-gray-500"
                   :class="item.registrable
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
+                      ? 'bg-green-100 dark:bg-green-900'
+                      : 'bg-red-100 dark:bg-red-900'"
                 >
                     {{ item.registrable ? 'R' : '✕' }}
                   </span>
@@ -388,7 +388,7 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
                 <!-- Inventariable -->
                 <span
                   v-if="item.inventariable"
-                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-gray-900 dark:text-gray-100 bg-blue-100 dark:bg-blue-900"
                   title="Inventariable"
                 >
                     I
@@ -397,7 +397,7 @@ const onModalSaved = (message = 'Operación realizada correctamente') => {
                 <!-- Rinde Tribunal -->
                 <span
                   v-if="item.rend_tribunal"
-                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-gray-900 dark:text-gray-100 bg-purple-100 dark:bg-purple-900"
                   title="Rinde Tribunal"
                 >
                     T

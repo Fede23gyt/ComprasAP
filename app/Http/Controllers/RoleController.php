@@ -33,7 +33,17 @@ class RoleController extends Controller
       $query->where('is_active', $request->boolean('status'));
     }
 
-    $roles = $query->withCount('users')->paginate(15)->withQueryString();
+    $roles = $query->withCount('oldUsers as users_count')->paginate(15)->withQueryString();
+
+    // Transformar los permisos para asegurar que sean arrays
+    $roles->getCollection()->transform(function ($role) {
+      $permissions = $role->permissions;
+      if (is_string($permissions)) {
+        $permissions = json_decode($permissions, true) ?? [];
+      }
+      $role->permissions = is_array($permissions) ? $permissions : [];
+      return $role;
+    });
 
     return Inertia::render('Admin/Roles/Index', [
       'roles' => $roles,
@@ -116,13 +126,25 @@ class RoleController extends Controller
    */
   public function show(Role $role): Response
   {
-    $role->load(['users' => function ($query) {
+    // Cargar usuarios con este rol usando la relación correcta (role_id en users)
+    $role->load(['oldUsers' => function ($query) {
       $query->select('id', 'name', 'email', 'is_active', 'role_id')
         ->with('oficinas:id,nombre,abreviacion');
     }]);
 
+    // Transformar para el frontend
+    $roleData = $role->toArray();
+    $roleData['users'] = $role->oldUsers;
+    
+    // Asegurar que permissions sea un array válido
+    $permissions = $role->permissions;
+    if (is_string($permissions)) {
+      $permissions = json_decode($permissions, true) ?? [];
+    }
+    $roleData['permissions'] = is_array($permissions) ? $permissions : [];
+
     return Inertia::render('Admin/Roles/Show', [
-      'role' => $role,
+      'role' => $roleData,
       'permissions' => $this->getAvailablePermissions(),
     ]);
   }
@@ -132,8 +154,16 @@ class RoleController extends Controller
    */
   public function edit(Role $role): Response
   {
+    // Transformar el rol para asegurar que permissions sea un array
+    $roleData = $role->toArray();
+    $permissions = $role->permissions;
+    if (is_string($permissions)) {
+      $permissions = json_decode($permissions, true) ?? [];
+    }
+    $roleData['permissions'] = is_array($permissions) ? $permissions : [];
+
     return Inertia::render('Admin/Roles/Edit', [
-      'role' => $role,
+      'role' => $roleData,
       'availablePermissions' => $this->getAvailablePermissions(),
     ]);
   }
@@ -297,7 +327,7 @@ class RoleController extends Controller
       'total' => Role::count(),
       'active' => Role::where('is_active', true)->count(),
       'inactive' => Role::where('is_active', false)->count(),
-      'with_users' => Role::has('users')->count(),
+      'with_users' => Role::has('oldUsers')->count(),
       'system_roles' => Role::whereIn('name', ['administrador', 'secretario', 'director', 'operador', 'invitado'])->count(),
     ];
   }

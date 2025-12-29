@@ -1,0 +1,112 @@
+
+  🔄 Ciclo de Estados de un Presupuesto
+
+  📝 BORRADOR
+
+  - Estado inicial al crear un presupuesto
+  - Condiciones:
+    - Debe tener al menos un detalle (insumo) agregado
+    - No debe tener ofertas asociadas
+  - Acciones permitidas:
+    - ✅ Editar (solo si no tiene ofertas)
+    - ✅ Enviar (si tiene detalles)
+
+  📤 ENVIADO
+
+  - Condición para llegar: Desde BORRADOR con puedeEnviar() = true
+  - Automático: Se asigna fecha_presupuesto = fecha actual
+  - Acciones permitidas:
+    - ✅ Aprobar
+    - ✅ Rechazar
+    - ✅ Cerrar
+    - ✅ Marcar como desierta
+
+  ✅ APROBADO
+
+  - Condición para llegar: Desde ENVIADO con puedeAprobar() = true
+  - Permite: Observaciones opcionales
+  - Acciones permitidas:
+    - ✅ Cerrar
+    - ✅ Marcar como desierta
+
+  ❌ RECHAZADO
+
+  - Condición para llegar: Desde ENVIADO con puedeRechazar() = true
+  - Requiere: Motivo obligatorio
+  - Estado final: No permite más transiciones
+
+  🎯 ADJUDICADO
+
+  - Condición para llegar: Manualmente desde estados apropiados
+  - Significa: Presupuesto ha sido adjudicado a un proveedor
+  - Acciones permitidas: Limitadas
+
+  🚫 DESIERTA
+
+  - Condición para llegar: Desde ENVIADO o APROBADO
+  - Permite: Motivo opcional
+  - Acción especial: ✅ Reabrir (crea nuevo presupuesto)
+
+  🔒 CERRADA
+
+  - Condición para llegar: Desde ENVIADO o APROBADO
+  - Efecto: Libera insumos (marca como no presupuestados)
+  - Estado final: No permite más transiciones
+
+  🔄 Flujo de Transiciones
+
+  BORRADOR → ENVIADO → APROBADO → CERRADA
+      ↓         ↓         ↓
+      ❌     RECHAZADO   DESIERTA → REABRIR (nuevo BORRADOR)
+                ↓         ↓
+            (FINAL)   ADJUDICADO
+                          ↓
+                      CERRADA
+
+  ⚠️ Reglas Importantes
+
+  1. Edición: Solo en BORRADOR y sin ofertas
+  2. Liberación de insumos: Solo al CERRAR o RECHAZAR
+  3. Reapertura: Solo desde DESIERTA (crea nuevo presupuesto con nro_llamado++)
+  4. Ofertas: Se gestionan por separado, no afectan el flujo de estados del presupuesto
+
+
+Nuevos cambios
+
+ Flujo Completo de Estados
+
+  BORRADOR (creación)
+      ↓ [Cualquier usuario: Botón "Confirmar"]
+  ENVIADO (esperando aprobación)
+      ↓ [Director: Botón "Aprobar"]         → [Director: Botón "Rechazar"]
+  APROBADO ← → → → → → → → → → → → → → → → RECHAZADO
+      ↓                                           ↓
+  [Recibe ofertas]                        [Libera insumos]
+      ↓
+  [Evalúa y adjudica]
+      ↓
+  ADJUDICADO / DESIERTO / CERRADO
+
+  ---
+  🎯 Comportamiento Actual
+
+  Usuario Normal (no director):
+
+  - ✅ Puede crear presupuesto (BORRADOR)
+  - ✅ Puede editar presupuesto en BORRADOR
+  - ✅ Puede CONFIRMAR presupuesto (BORRADOR → ENVIADO)
+  - ❌ NO puede aprobar ni rechazar
+
+  Director:
+
+  - ✅ Todo lo anterior
+  - ✅ Puede APROBAR presupuesto enviado (ENVIADO → APROBADO)
+  - ✅ Puede RECHAZAR presupuesto enviado (ENVIADO → RECHAZADO)
+
+  Liberación de Insumos:
+
+  - ✅ Se liberan al rechazar
+  - ✅ Se liberan al marcar como desierto
+  - ✅ Se liberan al cerrar
+  - ✅ Se liberan al anular
+  - ❌ NO se liberan al aprobar (quedan bloqueados)

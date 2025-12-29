@@ -16,14 +16,16 @@ class DetNotaPedido extends Model
         'cantidad',
         'precio',
         'total_renglon',
-        'comentario'
+        'comentario',
+        'presupuestado'
     ];
 
     protected $casts = [
         'cantidad' => 'decimal:4',
         'precio' => 'decimal:2',
         'total_renglon' => 'decimal:2',
-        'renglon' => 'integer'
+        'renglon' => 'integer',
+        'presupuestado' => 'boolean'
     ];
 
     /**
@@ -40,6 +42,22 @@ class DetNotaPedido extends Model
     public function insumo(): BelongsTo
     {
         return $this->belongsTo(Insumo::class);
+    }
+
+    /**
+     * Relación con los presupuestos que incluyen este insumo
+     * A través de la tabla de detalles de presupuesto
+     */
+    public function presupuestosAsociados()
+    {
+        return $this->hasManyThrough(
+            Presupuesto::class,
+            DetPresupuesto::class,
+            'insumo_id', // Foreign key en det_presupuesto
+            'id', // Foreign key en presupuestos
+            'insumo_id', // Local key en det_notapedido
+            'presupuesto_id' // Local key en det_presupuesto
+        )->where('presupuestos.estado', '!=', Presupuesto::ESTADO_RECHAZADO);
     }
 
     /**
@@ -83,6 +101,16 @@ class DetNotaPedido extends Model
     public function scopeOrdenadoPorRenglon($query)
     {
         return $query->orderBy('renglon');
+    }
+
+    public function scopeSinPresupuestar($query)
+    {
+        return $query->where('presupuestado', false);
+    }
+
+    public function scopePresupuestados($query)
+    {
+        return $query->where('presupuestado', true);
     }
 
     /**

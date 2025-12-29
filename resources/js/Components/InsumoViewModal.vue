@@ -251,6 +251,7 @@ const descripcionLength = computed(() => {
                 :readonly="isReadOnly"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 transition-colors"
                 :class="isReadOnly ? 'bg-gray-50 dark:bg-gray-700' : 'bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'"
+                :placeholder="!form.fecha_ultima ? 'Seleccionar fecha' : undefined"
               />
             </div>
           </div>

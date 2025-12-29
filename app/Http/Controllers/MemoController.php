@@ -24,16 +24,18 @@ class MemoController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'nombre' => 'required|string|max:255',
             'descripcion' => 'required|unique:memos',
             'estado' => 'nullable|in:Habilitado,No habilitado'
         ]);
         
         Memo::create([
+            'nombre' => $request->nombre,
             'descripcion' => $request->descripcion,
             'estado' => $request->estado ?? 'Habilitado'
         ]);
         
-        return redirect()->route('memo.index');
+        return redirect()->route('nomencladores.memos.index');
     }
 
     /**
@@ -52,16 +54,18 @@ class MemoController extends Controller
     public function update(Request $request, Memo $memo)
     {
         $request->validate([
+            'nombre' => 'required|string|max:255',
             'descripcion' => ['required', Rule::unique('memos')->ignore($memo->id)],
             'estado' => 'nullable|in:Habilitado,No habilitado'
         ]);
         
         $memo->update([
+            'nombre' => $request->nombre,
             'descripcion' => $request->descripcion,
             'estado' => $request->estado ?? 'Habilitado'
         ]);
         
-        return redirect()->route('memo.index');
+        return redirect()->route('nomencladores.memos.index');
     }
 
     /**
@@ -70,6 +74,6 @@ class MemoController extends Controller
     public function destroy(Memo $memo)
     {
         $memo->delete();
-        return redirect()->route('memo.index');
+        return redirect()->route('nomencladores.memos.index');
     }
 }
